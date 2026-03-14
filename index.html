@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StandBy">
+<title>StandBy Mode</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕐</text></svg>">
+<style>
+  /* ===== 全局 ===== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== 引导页 ===== */
+  #guide-overlay {
+    position: fixed; inset: 0;
+    background: #000;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    transition: opacity 0.5s ease;
+  }
+  #guide-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  #guide-overlay.removed {
+    display: none;
+  }
+
+  .guide-content {
+    text-align: center;
+    padding: 40px;
+  }
+  .guide-icon {
+    font-size: 80px;
+    margin-bottom: 24px;
+    filter: drop-shadow(0 0 40px rgba(255,149,0,0.3));
+  }
+  .guide-title {
+    font-size: 42px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -1px;
+  }
+  .guide-desc {
+    font-size: 18px;
+    color: #888;
+    margin-bottom: 48px;
+  }
+  .guide-btn {
+    background: #ff9500;
+    color: #000;
+    border: none;
+    padding: 18px 56px;
+    border-radius: 50px;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: rgba(255,149,0,0.3);
+    transition: transform 0.15s, opacity 0.15s;
+    margin-bottom: 32px;
+  }
+  .guide-btn:active {
+    transform: scale(0.96);
+    opacity: 0.8;
+  }
+  .guide-hint {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  /* ===== 主容器 ===== */
+  #app {
+    width: 100%; height: 100%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== 页面类型切换（上下滑动） ===== */
+  .pages-vertical {
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.5s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
+  }
+  .page-type {
+    min-width: 100%; min-height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  /* ===== 主题切换（左右滑动） ===== */
+  .themes-horizontal {
+    width: 100%; height: 100%;
+    display: flex;
+    transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
+  }
+  .theme-slide {
+    min-width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  /* ===== 页面指示器（垂直） ===== */
+  .page-indicator {
+    position: fixed;
+    right: max(12px, env(safe-area-inset-right));
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 50;
+  }
+  .indicator-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transition: all 0.3s;
+  }
+  .indicator-dot.active { background: rgba(255,255,255,0.8); height: 18px; border-radius: 3px; }
+
+  /* ===== 主题指示器（水平） ===== */
+  .theme-indicator {
+    position: fixed;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    z-index: 50;
+  }
+  .theme-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    transition: all 0.3s;
+  }
+  .theme-dot.active { background: rgba(255,255,255,0.7); width: 18px; border-radius: 3px; }
+
+  /* ===== 顶部状态栏 ===== */
+  .status-bar {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: 16px;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 50;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    opacity: 1;
+    transition: opacity 3s ease;
+  }
+  .status-bar.fade { opacity: 0; }
+  .status-eye {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    transition: all 0.3s;
+  }
+  .status-eye.looking { color: #30d158; background: rgba(48,209,88,0.12); }
+  .status-eye .eye-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #555;
+    transition: background 0.3s;
+  }
+  .status-eye.looking .eye-dot { background: #30d158; }
+
+  /* ===== 设置按钮 ===== */
+  .settings-btn {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    left: 16px;
+    z-index: 50;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    color: rgba(255,255,255,0.4);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 3s ease;
+  }
+  .settings-btn.fade { opacity: 0; }
+
+  /* ===== 设置面板 ===== */
+  #settings-panel {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.96);
+    -webkit-backdrop-filter: blur(40px);
+    backdrop-filter: blur(40px);
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+    padding: max(60px, env(safe-area-inset-top) + 20px) 24px 40px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #settings-panel.open { display: flex; }
+
+  .settings-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 28px;
+  }
+  .settings-title { font-size: 28px; font-weight: 700; }
+  .settings-close {
+    background: rgba(255,255,255,0.1);
+    border: none; border-radius: 50%;
+    width: 36px; height: 36px;
+    color: #fff; font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .setting-group { margin-bottom: 24px; }
+  .setting-group-title {
+    font-size: 13px; font-weight: 600;
+    color: #888; text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+  .setting-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 14px;
+    margin-bottom: 2px;
+  }
+  .setting-item:first-of-type { border-radius: 14px 14px 2px 2px; }
+  .setting-item:last-of-type { border-radius: 2px 2px 14px 14px; margin-bottom: 0; }
+  .setting-item:only-of-type { border-radius: 14px; }
+  .setting-label { font-size: 16px; }
+  .setting-desc { font-size: 12px; color: #888; margin-top: 3px; }
+
+  /* iOS 风格开关 */
+  .toggle {
+    position: relative;
+    width: 51px; height: 31px;
+    background: #39393d;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: #30d158; }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 27px; height: 27px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .toggle.on::after { transform: translateX(20px); }
+
+  /* ===== 第1页: 双列小组件（字体放大） ===== */
+  .dual-widget {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+    padding: 60px 28px 40px;
+    align-items: stretch;
+  }
+  .widget-col {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 28px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .widget-clock {
+    background: linear-gradient(160deg, rgba(255,149,0,0.15), rgba(255,100,0,0.05));
+    border: 1px solid rgba(255,149,0,0.1);
+  }
+  .widget-calendar {
+    background: linear-gradient(160deg, rgba(0,199,190,0.15), rgba(0,160,150,0.05));
+    border: 1px solid rgba(0,199,190,0.1);
+  }
+
+  .widget-time {
+    font-size: clamp(56px, 14vw, 100px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #ff9500;
+    letter-spacing: -3px;
+    line-height: 1;
+  }
+  .widget-weekday {
+    font-size: clamp(18px, 3.5vw, 26px);
+    font-weight: 500;
+    color: rgba(255, 149, 0, 0.6);
+    margin-top: 10px;
+  }
+  .widget-date-small {
+    font-size: clamp(14px, 2.5vw, 20px);
+    color: rgba(255, 149, 0, 0.4);
+    margin-top: 4px;
+  }
+
+  .cal-month {
+    font-size: clamp(18px, 3.5vw, 26px);
+    font-weight: 600;
+    color: #00c7be;
+  }
+  .cal-day {
+    font-size: clamp(72px, 18vw, 130px);
+    font-weight: 800;
+    color: #00c7be;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .cal-weekday {
+    font-size: clamp(14px, 2.5vw, 20px);
+    font-weight: 500;
+    color: rgba(0, 199, 190, 0.5);
+    margin-top: 6px;
+  }
+
+  /* ===== 第2页: 全屏时钟（字体放大） ===== */
+
+  /* 经典主题 */
+  .clock-classic { text-align: center; }
+  .clock-classic .clock-time {
+    font-size: clamp(90px, 30vw, 220px);
+    font-weight: 800;
+    letter-spacing: -6px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .clock-classic .clock-colon {
+    opacity: 0.3;
+    animation: blink 2s ease-in-out infinite;
+  }
+  .clock-classic .clock-seconds {
+    font-size: clamp(28px, 7vw, 56px);
+    font-weight: 300;
+    color: rgba(255,255,255,0.25);
+    vertical-align: super;
+    margin-left: 6px;
+  }
+  .clock-classic .clock-info {
+    font-size: clamp(18px, 3.5vw, 28px);
+    color: rgba(255,255,255,0.35);
+    margin-top: 12px;
+    font-weight: 400;
+    letter-spacing: 2px;
+  }
+
+  /* 极简主题 */
+  .clock-minimal { text-align: center; }
+  .clock-minimal .clock-time {
+    font-size: clamp(80px, 28vw, 200px);
+    font-weight: 100;
+    letter-spacing: 12px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255,255,255,0.95);
+  }
+  .clock-minimal .clock-divider {
+    width: 60px; height: 1px;
+    background: rgba(255,255,255,0.15);
+    margin: 20px auto;
+  }
+  .clock-minimal .clock-info {
+    font-size: clamp(14px, 2.8vw, 22px);
+    font-weight: 300;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  /* 霓虹主题 */
+  .clock-neon { text-align: center; }
+  .clock-neon .clock-time {
+    font-size: clamp(85px, 28vw, 210px);
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .clock-neon .neon-hour {
+    color: #bf5af2;
+    text-shadow: 0 0 30px rgba(191,90,242,0.6), 0 0 80px rgba(191,90,242,0.3);
+  }
+  .clock-neon .neon-colon {
+    color: rgba(191,90,242,0.5);
+    margin: 0 4px;
+  }
+  .clock-neon .neon-min {
+    color: #64d2ff;
+    text-shadow: 0 0 30px rgba(100,210,255,0.6), 0 0 80px rgba(100,210,255,0.3);
+  }
+  .clock-neon .clock-info {
+    font-size: clamp(14px, 2.8vw, 22px);
+    font-family: 'Courier New', monospace;
+    color: rgba(191,90,242,0.4);
+    margin-top: 16px;
+    letter-spacing: 3px;
+  }
+
+  /* 模拟表盘主题 */
+  .clock-analog { position: relative; text-align: center; }
+  .analog-face {
+    position: relative;
+    width: clamp(260px, 60vmin, 420px);
+    height: clamp(260px, 60vmin, 420px);
+    margin: 0 auto;
+  }
+  .analog-ring {
+    position: absolute; inset: 0;
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+  }
+  .analog-inner-ring {
+    position: absolute; inset: 8%; 
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 50%;
+  }
+  .analog-mark {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform-origin: 0 0;
+  }
+  .analog-mark-line {
+    width: 2px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 1px;
+  }
+  .analog-mark-major .analog-mark-line {
+    width: 4px;
+    height: 22px;
+    background: rgba(255,255,255,0.7);
+  }
+  .analog-mark-minor .analog-mark-line {
+    height: 10px;
+  }
+  .analog-number {
+    position: absolute;
+    font-size: clamp(16px, 3.5vmin, 24px);
+    font-weight: 500;
+    color: rgba(255,255,255,0.6);
+    transform: translate(-50%, -50%);
+  }
+  .analog-hand {
+    position: absolute;
+    bottom: 50%; left: 50%;
+    transform-origin: bottom center;
+    border-radius: 2px;
+    transition: none;
+  }
+  .hand-hour {
+    width: 6px;
+    height: 26%;
+    background: #fff;
+    margin-left: -3px;
+    border-radius: 4px;
+  }
+  .hand-minute {
+    width: 4px;
+    height: 36%;
+    background: rgba(255,255,255,0.9);
+    margin-left: -2px;
+    border-radius: 3px;
+  }
+  .hand-second {
+    width: 2px;
+    height: 40%;
+    background: #ff9500;
+    margin-left: -1px;
+  }
+  .analog-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 12px; height: 12px;
+    margin: -6px;
+    border-radius: 50%;
+    background: #ff9500;
+    box-shadow: 0 0 10px rgba(255,149,0,0.5);
+  }
+  .analog-date-text {
+    margin-top: 24px;
+    font-size: clamp(14px, 3vmin, 20px);
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2px;
+  }
+
+  /* 翻页时钟 */
+  .clock-flip { text-align: center; }
+  .flip-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+  .flip-group {
+    display: flex;
+    gap: 6px;
+  }
+  .flip-card {
+    position: relative;
+    width: clamp(70px, 16vw, 120px);
+    height: clamp(95px, 22vw, 160px);
+    background: linear-gradient(180deg, #1c1c1e 0%, #1c1c1e 49.5%, #111 49.5%, #111 50.5%, #2c2c2e 50.5%, #2c2c2e 100%);
+    border-radius: clamp(10px, 2.5vw, 18px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(48px, 13vw, 100px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+  .flip-colon {
+    font-size: clamp(36px, 9vw, 70px);
+    font-weight: 300;
+    color: rgba(255,255,255,0.25);
+    margin: 0 4px;
+  }
+  .clock-flip .clock-info {
+    margin-top: 24px;
+    font-size: clamp(16px, 3.2vw, 24px);
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 3px;
+    font-weight: 400;
+  }
+
+  /* 渐变文字时钟 */
+  .clock-gradient { text-align: center; }
+  .clock-gradient .clock-time {
+    font-size: clamp(95px, 32vw, 240px);
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    background: linear-gradient(135deg, #ff6b6b, #ffa502, #ff6b6b, #ee5a24);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 6s ease infinite;
+    letter-spacing: -4px;
+  }
+  .clock-gradient .clock-info {
+    font-size: clamp(16px, 3.2vw, 24px);
+    color: rgba(255,255,255,0.25);
+    margin-top: 14px;
+    letter-spacing: 3px;
+    font-weight: 300;
+  }
+
+  /* 浮光时钟 */
+  .clock-aurora { text-align: center; position: relative; }
+  .aurora-bg {
+    position: absolute;
+    inset: -80px;
+    background: radial-gradient(ellipse at 30% 50%, rgba(88,86,214,0.2) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 50%, rgba(0,199,190,0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(255,149,0,0.1) 0%, transparent 40%);
+    animation: aurora-move 12s ease-in-out infinite alternate;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .clock-aurora .clock-time {
+    position: relative; z-index: 1;
+    font-size: clamp(90px, 30vw, 220px);
+    font-weight: 200;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: -3px;
+  }
+  .clock-aurora .clock-info {
+    position: relative; z-index: 1;
+    font-size: clamp(16px, 3.2vw, 24px);
+    color: rgba(255,255,255,0.25);
+    margin-top: 16px;
+    font-weight: 300;
+    letter-spacing: 4px;
+  }
+
+  /* 像素时钟 */
+  .clock-pixel { text-align: center; }
+  .clock-pixel .clock-time {
+    font-size: clamp(75px, 26vw, 190px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: #30d158;
+    text-shadow: 0 0 16px rgba(48,209,88,0.5),
+                 0 0 50px rgba(48,209,88,0.2);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 6px;
+  }
+  .clock-pixel .pixel-cursor {
+    display: inline-block;
+    width: clamp(4px, 1vw, 6px);
+    height: clamp(45px, 12vw, 70px);
+    background: #30d158;
+    vertical-align: middle;
+    margin-left: 8px;
+    animation: cursor-blink 1s step-end infinite;
+  }
+  .clock-pixel .clock-info {
+    font-size: clamp(14px, 2.8vw, 22px);
+    font-family: 'Courier New', monospace;
+    color: rgba(48,209,88,0.35);
+    margin-top: 16px;
+    letter-spacing: 3px;
+  }
+  .clock-pixel .pixel-prompt {
+    color: rgba(48,209,88,0.6);
+  }
+
+  /* ===== 第3页: 照片/渐变（字体放大） ===== */
+  .photo-page { position: relative; overflow: hidden; }
+  .photo-bg {
+    position: absolute; inset: 0;
+    opacity: 0.3;
+    transition: background 3s ease;
+  }
+  .photo-icon {
+    font-size: clamp(90px, 26vw, 160px);
+    z-index: 1;
+    transition: all 2s ease;
+    filter: drop-shadow(0 15px 40px rgba(0,0,0,0.4));
+  }
+  .photo-time {
+    position: absolute;
+    bottom: max(60px, env(safe-area-inset-bottom) + 32px);
+    left: 40px;
+    z-index: 1;
+  }
+  .photo-time-text {
+    font-size: clamp(48px, 10vw, 72px);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -2px;
+  }
+  .photo-time-date {
+    font-size: clamp(16px, 3vw, 22px);
+    color: rgba(255,255,255,0.5);
+    margin-top: 4px;
+    font-weight: 400;
+  }
+
+  /* ===== 强制横屏适配 ===== */
+  @media screen and (orientation: portrait) {
+    html {
+      transform: rotate(90deg);
+      transform-origin: top left;
+      width: 100vh;
+      height: 100vw;
+      overflow-x: hidden;
+      overflow-y: auto;
+      position: absolute;
+      top: 0;
+      left: 100vw;
+    }
+  }
+
+  /* ===== 夜间红色模式 ===== */
+  body.night-mode { filter: saturate(0) brightness(0.6); }
+  body.night-mode #app { filter: sepia(1) hue-rotate(-30deg) saturate(3) brightness(0.5); }
+
+  /* ===== 调暗遮罩（无人注视） ===== */
+  #dim-overlay {
+    position: fixed; inset: 0;
+    background: #000;
+    opacity: 0;
+    z-index: 100;
+    pointer-events: none;
+    transition: opacity 2s ease;
+  }
+  #dim-overlay.dimmed { opacity: 0.88; }
+
+  /* ===== 隐藏视频 ===== */
+  #face-video {
+    position: fixed;
+    top: -9999px; left: -9999px;
+    width: 1px; height: 1px;
+    opacity: 0;
+  }
+
+  /* ===== 低电量模式 ===== */
+  body.low-power * {
+    animation-duration: 0s !important;
+    transition-duration: 0.1s !important;
+  }
+
+  /* ===== 动画 ===== */
+  @keyframes blink {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.9; }
+  }
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes aurora-move {
+    0% { transform: translateX(-15px) scale(1); }
+    100% { transform: translateX(15px) scale(1.08); }
+  }
+  @keyframes cursor-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 引导页 -->
+<div id="guide-overlay">
+  <div class="guide-content">
+    <div class="guide-icon">🕐</div>
+    <div class="guide-title">StandBy</div>
+    <div class="guide-desc">横放 iPhone，变身智能时钟</div>
+    <button class="guide-btn" id="start-btn">进入全屏</button>
+    <div class="guide-hint">↕️ 上下滑动切换页面 · ↔️ 左右滑动切换主题</div>
+  </div>
+</div>
+
+<!-- 主应用 -->
+<div id="app">
+  <div class="status-bar" id="status-bar">
+    <div class="status-eye" id="status-eye">
+      <span class="eye-dot"></span>
+      <span id="eye-label">👁️</span>
+    </div>
+  </div>
+
+  <button class="settings-btn" id="settings-open-btn">⚙</button>
+
+  <!-- 页面类型切换（上下滑动） -->
+  <div class="pages-vertical" id="pages-vertical">
+    <!-- 第1页: 双列小组件 -->
+    <div class="page-type" id="page-widgets">
+      <div class="dual-widget">
+        <div class="widget-col widget-clock">
+          <div style="text-align:center">
+            <div class="widget-time" id="w-time">00:00</div>
+            <div class="widget-weekday" id="w-weekday">星期一</div>
+            <div class="widget-date-small" id="w-date">1月1日</div>
+          </div>
+        </div>
+        <div class="widget-col widget-calendar">
+          <div style="text-align:center">
+            <div class="cal-month" id="w-cal-month">一月</div>
+            <div class="cal-day" id="w-cal-day">1</div>
+            <div class="cal-weekday" id="w-cal-weekday">星期一</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第2页: 全屏时钟（左右滑动切换主题） -->
+    <div class="page-type" id="page-clock">
+      <div class="themes-horizontal" id="themes-horizontal">
+        <!-- 主题1: 经典 -->
+        <div class="theme-slide">
+          <div class="clock-classic">
+            <div class="clock-time" id="theme-classic-time">00<span class="clock-colon">:</span>00<span class="clock-seconds">00</span></div>
+            <div class="clock-info" id="theme-classic-info">星期一　1月1日</div>
+          </div>
+        </div>
+        <!-- 主题2: 极简 -->
+        <div class="theme-slide">
+          <div class="clock-minimal">
+            <div class="clock-time" id="theme-minimal-time">00:00</div>
+            <div class="clock-divider"></div>
+            <div class="clock-info" id="theme-minimal-info">星期一 · 1月1日</div>
+          </div>
+        </div>
+        <!-- 主题3: 霓虹 -->
+        <div class="theme-slide">
+          <div class="clock-neon">
+            <div class="clock-time"><span class="neon-hour" id="theme-neon-h">00</span><span class="neon-colon">:</span><span class="neon-min" id="theme-neon-m">00</span></div>
+            <div class="clock-info" id="theme-neon-info">星期一 · 1月1日</div>
+          </div>
+        </div>
+        <!-- 主题4: 表盘 -->
+        <div class="theme-slide">
+          <div class="clock-analog" id="theme-analog"></div>
+        </div>
+        <!-- 主题5: 翻页 -->
+        <div class="theme-slide">
+          <div class="clock-flip">
+            <div class="flip-row">
+              <div class="flip-group">
+                <div class="flip-card" id="flip-h1">0</div>
+                <div class="flip-card" id="flip-h2">0</div>
+              </div>
+              <div class="flip-colon">:</div>
+              <div class="flip-group">
+                <div class="flip-card" id="flip-m1">0</div>
+                <div class="flip-card" id="flip-m2">0</div>
+              </div>
+            </div>
+            <div class="clock-info" id="theme-flip-info">星期一　1月1日</div>
+          </div>
+        </div>
+        <!-- 主题6: 渐变 -->
+        <div class="theme-slide">
+          <div class="clock-gradient">
+            <div class="clock-time" id="theme-gradient-time">00:00</div>
+            <div class="clock-info" id="theme-gradient-info">星期一 · 1月1日</div>
+          </div>
+        </div>
+        <!-- 主题7: 浮光 -->
+        <div class="theme-slide">
+          <div class="clock-aurora">
+            <div class="aurora-bg"></div>
+            <div class="clock-time" id="theme-aurora-time">00:00</div>
+            <div class="clock-info" id="theme-aurora-info">星期一 · 1月1日</div>
+          </div>
+        </div>
+        <!-- 主题8: 终端 -->
+        <div class="theme-slide">
+          <div class="clock-pixel">
+            <div class="clock-time"><span class="pixel-prompt">$</span> <span id="theme-pixel-time">00:00:00</span><span class="pixel-cursor"></span></div>
+            <div class="clock-info" id="theme-pixel-info">// 星期一 1月1日</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第3页: 照片展示 -->
+    <div class="page-type photo-page" id="page-photo">
+      <div class="photo-bg" id="photo-bg"></div>
+      <div class="photo-icon" id="photo-icon">🏔️</div>
+      <div class="photo-time">
+        <div class="photo-time-text" id="photo-time">00:00</div>
+        <div class="photo-time-date" id="photo-date">1月1日 星期一</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页面类型指示器（右侧垂直） -->
+  <div class="page-indicator" id="page-indicator">
+    <div class="indicator-dot active"></div>
+    <div class="indicator-dot"></div>
+    <div class="indicator-dot"></div>
+  </div>
+
+  <!-- 主题指示器（底部水平） -->
+  <div class="theme-indicator" id="theme-indicator">
+    <div class="theme-dot active"></div>
+    <div class="theme-dot"></div>
+    <div class="theme-dot"></div>
+    <div class="theme-dot"></div>
+    <div class="theme-dot"></div>
+    <div class="theme-dot"></div>
+    <div class="theme-dot"></div>
+    <div class="theme-dot"></div>
+  </div>
+</div>
+
+<!-- 调暗遮罩 -->
+<div id="dim-overlay"></div>
+
+<!-- 设置面板 -->
+<div id="settings-panel">
+  <div class="settings-header">
+    <span class="settings-title">设置</span>
+    <button class="settings-close" id="settings-close-btn">✕</button>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">👁️ 注视感知</div>
+    <div class="setting-item">
+      <div>
+        <div class="setting-label">人眼注视感知</div>
+        <div class="setting-desc">看一眼亮屏5分钟，到期后无注视自动息屏</div>
+      </div>
+      <div class="toggle on" id="toggle-attention" onclick="toggleAttention()"></div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">🌙 夜间模式</div>
+    <div class="setting-item">
+      <div>
+        <div class="setting-label">红色夜间模式</div>
+        <div class="setting-desc">低光环境自动切换红色调</div>
+      </div>
+      <div class="toggle" id="toggle-night" onclick="toggleNight()"></div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">⚡ 省电模式</div>
+    <div class="setting-item">
+      <div>
+        <div class="setting-label">低电量模式</div>
+        <div class="setting-desc">关闭动画、降低刷新频率</div>
+      </div>
+      <div class="toggle" id="toggle-lowpower" onclick="toggleLowPower()"></div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">ℹ️ 使用说明</div>
+    <div class="setting-item" style="border-radius:14px; flex-direction:column; align-items:flex-start; gap:8px;">
+      <div class="setting-desc" style="line-height:2; font-size:14px">
+        <b>↕️ 上下滑动</b> — 切换小组件 / 时钟 / 照片<br>
+        <b>↔️ 左右滑动</b> — 切换时钟主题<br>
+        <b>👁️ 注视感知</b> — 自动检测人脸亮屏<br>
+        <b>⚙️ 设置</b> — 点击左上角齿轮
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 隐藏视频（面部检测用） -->
+<video id="face-video" autoplay playsinline></video>
+
+<script>
+// ============================================
+// 全局状态
+// ============================================
+let currentPageType = 1; // 0=小组件, 1=时钟, 2=照片
+const totalPageTypes = 3;
+let currentTheme = 0; // 0-7 对应8个主题
+const totalThemes = 8;
+
+// 默认开启注视感知
+let attentionEnabled = localStorage.getItem('standby-attention') !== 'false';
+let nightMode = localStorage.getItem('standby-night') === 'true';
+let lowPowerMode = localStorage.getItem('standby-lowpower') === 'true';
+
+let isUserLooking = false;
+let dimTimer = null;
+const DIM_DELAY = 6000;
+const GAZE_BRIGHT_DURATION = 5 * 60 * 1000;
+let gazeBrightTimer = null;
+let gazeDetectPaused = false;
+
+// 面部检测
+let faceDetector = null;
+let videoStream = null;
+let faceDetectInterval = null;
+
+// 照片页轮播
+const photoGradients = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+];
+const photoIcons = ['🏔️', '🌅', '☀️', '🍃', '✨', '🌸'];
+let photoIndex = 0;
+
+// ============================================
+// DOM 缓存
+// ============================================
+let DOM = {};
+function cacheDom() {
+  DOM = {
+    wTime: document.getElementById('w-time'),
+    wWeekday: document.getElementById('w-weekday'),
+    wDate: document.getElementById('w-date'),
+    wCalMonth: document.getElementById('w-cal-month'),
+    wCalDay: document.getElementById('w-cal-day'),
+    wCalWeekday: document.getElementById('w-cal-weekday'),
+    pagesVertical: document.getElementById('pages-vertical'),
+    themesHorizontal: document.getElementById('themes-horizontal'),
+    photoTime: document.getElementById('photo-time'),
+    photoDate: document.getElementById('photo-date'),
+    photoBg: document.getElementById('photo-bg'),
+    photoIcon: document.getElementById('photo-icon'),
+    dimOverlay: document.getElementById('dim-overlay'),
+    statusBar: document.getElementById('status-bar'),
+    settingsBtn: document.getElementById('settings-open-btn'),
+    statusEye: document.getElementById('status-eye'),
+    eyeLabel: document.getElementById('eye-label'),
+    pageIndicator: document.getElementById('page-indicator'),
+    themeIndicator: document.getElementById('theme-indicator'),
+  };
+}
+
+// 性能优化：记录上次更新值
+let lastH = '', lastM = '', lastS = '', lastDay = '';
+let clockTimer = null;
+let uiHideTimer = null;
+
+// ============================================
+// 引导页启动
+// ============================================
+function initApp() {
+  cacheDom();
+
+  // 恢复设置
+  if (!attentionEnabled) document.getElementById('toggle-attention').classList.remove('on');
+  if (nightMode) {
+    document.getElementById('toggle-night').classList.add('on');
+    document.body.classList.add('night-mode');
+  }
+  if (lowPowerMode) {
+    document.getElementById('toggle-lowpower').classList.add('on');
+    document.body.classList.add('low-power');
+  }
+
+  // 启动时钟
+  updateAllClocks();
+  startClockTimer();
+  updatePageTypeUI();
+  updateThemeUI();
+
+  // 照片轮播
+  setInterval(cyclePhoto, 15000);
+  document.getElementById('photo-bg').style.background = photoGradients[0];
+
+  // 设置面板
+  document.getElementById('settings-open-btn').addEventListener('click', () => {
+    document.getElementById('settings-panel').classList.add('open');
+  });
+  document.getElementById('settings-close-btn').addEventListener('click', () => {
+    document.getElementById('settings-panel').classList.remove('open');
+  });
+
+  // 设置面板内阻止滑动穿透
+  document.getElementById('settings-panel').addEventListener('touchmove', (e) => {
+    e.stopPropagation();
+  }, { passive: true });
+
+  setupSwipe();
+  scheduleUIFade();
+
+  // 默认开启注视感知
+  if (attentionEnabled) startFaceDetection();
+}
+
+async function startFromGuide() {
+  const guide = document.getElementById('guide-overlay');
+  
+  // 请求全屏
+  await tryFullscreen();
+  
+  // 请求屏幕常亮
+  await requestWakeLock();
+  
+  // 隐藏引导页
+  guide.classList.add('hidden');
+  setTimeout(() => {
+    guide.classList.add('removed');
+  }, 500);
+
+  // iOS Safari 滚动隐藏地址栏
+  window.scrollTo(0, 1);
+}
+
+// ============================================
+// 初始化
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+  initApp();
+
+  // 启动按钮
+  const startBtn = document.getElementById('start-btn');
+  startBtn.addEventListener('click', startFromGuide);
+  startBtn.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    startFromGuide();
+  });
+
+  // 防止页面滚动（iOS 橡皮筋效果）
+  document.addEventListener('touchmove', (e) => {
+    if (e.target.closest('#settings-panel')) return;
+    e.preventDefault();
+  }, { passive: false });
+});
+
+// ============================================
+// UI 自动淡出/显示
+// ============================================
+function scheduleUIFade() {
+  clearTimeout(uiHideTimer);
+  DOM.statusBar.classList.remove('fade');
+  DOM.settingsBtn.classList.remove('fade');
+  uiHideTimer = setTimeout(() => {
+    DOM.statusBar.classList.add('fade');
+    DOM.settingsBtn.classList.add('fade');
+  }, 5000);
+}
+
+document.addEventListener('touchstart', () => {
+  scheduleUIFade();
+  if (attentionEnabled) {
+    undim();
+    if (gazeDetectPaused) {
+      startGazeBrightPeriod();
+    } else {
+      startDimTimer();
+    }
+  }
+}, { passive: true });
+
+// ============================================
+// 智能时钟刷新
+// ============================================
+function startClockTimer() {
+  if (clockTimer) clearInterval(clockTimer);
+  const interval = getClockInterval();
+  clockTimer = setInterval(updateAllClocks, interval);
+}
+
+function getClockInterval() {
+  if (lowPowerMode) return 10000;
+  // 时钟页且是经典/表盘/终端主题时每秒更新
+  if (currentPageType === 1 && [0, 3, 7].includes(currentTheme)) return 1000;
+  return 5000;
+}
+
+// ============================================
+// 全屏 & 屏幕常亮
+// ============================================
+async function tryFullscreen() {
+  try {
+    const el = document.documentElement;
+    
+    // 标准全屏 API
+    if (el.requestFullscreen) {
+      await el.requestFullscreen().catch(() => {});
+    } else if (el.webkitRequestFullscreen) {
+      await el.webkitRequestFullscreen();
+    }
+    
+    // iOS Safari 特定：尝试隐藏工具栏
+    if (window.navigator.standalone) {
+      // 已添加到主屏幕，已经是类全屏状态
+      return;
+    }
+    
+    // 尝试滚动隐藏地址栏
+    setTimeout(() => {
+      window.scrollTo(0, 1);
+      document.body.style.height = (window.innerHeight + 100) + 'px';
+      setTimeout(() => {
+        document.body.style.height = '100%';
+      }, 0);
+    }, 100);
+    
+  } catch(e) {}
+}
+
+let wakeLock = null;
+let noSleepVideo = null;
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      return;
+    }
+  } catch(e) {}
+  enableNoSleepFallback();
+}
+
+function enableNoSleepFallback() {
+  if (noSleepVideo) return;
+  try {
+    noSleepVideo = document.createElement('video');
+    noSleepVideo.setAttribute('playsinline', '');
+    noSleepVideo.setAttribute('webkit-playsinline', '');
+    noSleepVideo.setAttribute('loop', '');
+    noSleepVideo.setAttribute('muted', '');
+    noSleepVideo.muted = true;
+    noSleepVideo.style.cssText = 'position:fixed;top:-1px;left:-1px;width:1px;height:1px;opacity:0.01;';
+    noSleepVideo.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAFUWWIhAA3//728P4FNjuY0EcuAAVMAAAAB0AAAAN2n5gAAALDgAAAAMJYBAAFaagATEAAAAGBHhAAJoAAABgil0AAAO0IAABRgA+gAAAASkaQAADaAAAABjihAALmAAABa0AAALQAAAA1MBIAAAAEU/AAAM8YAA0RAAAAJQAAAAF1AAAAMKYAABNgAAADdAAAAG8AAAB7EAAAIoAAANAAAAKgAABXQAAAGoAAAAVYAAAC5gAAAGcAAAAhYAAAAvgAAAAfAAAADIAAAAIcAAAA6AAAACPAAAAA1AAAACB0AAAANUAAABegAAACrgAAAA/AAAAM0AAAAsYAAAAhwAAADLAAAALGAAAAIcAAABWAAAAYgAAABDAAAAO+AAAAUoAAAE+AAAAAEsAAAAKmAAAChAAAAA+AAAAi4AAAAPYAAAOcAAAC1gAAAAPQAAAAhQ=';
+    document.body.appendChild(noSleepVideo);
+    const p = noSleepVideo.play();
+    if (p) p.catch(() => {});
+  } catch(e) {}
+}
+
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    if (!wakeLock && !noSleepVideo) await requestWakeLock();
+    updateAllClocks();
+    startClockTimer();
+  } else {
+    if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
+  }
+});
+
+// ============================================
+// 时钟更新
+// ============================================
+function updateAllClocks() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+
+  const weekdays = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  const wd = weekdays[now.getDay()];
+  const mon = months[now.getMonth()];
+  const day = now.getDate();
+  const dayStr = String(day);
+  const dateStr = `${now.getMonth()+1}月${day}日`;
+
+  const minuteChanged = (h !== lastH || m !== lastM);
+  const secondChanged = (s !== lastS);
+  const dayChanged = (dayStr !== lastDay);
+
+  // 小组件页
+  if (currentPageType === 0 && minuteChanged) {
+    DOM.wTime.textContent = `${h}:${m}`;
+    DOM.photoTime.textContent = `${h}:${m}`;
+  }
+  if (dayChanged) {
+    DOM.wWeekday.textContent = wd;
+    DOM.wDate.textContent = dateStr;
+    DOM.wCalMonth.textContent = mon;
+    DOM.wCalDay.textContent = dayStr;
+    DOM.wCalWeekday.textContent = wd;
+    DOM.photoDate.textContent = `${dateStr} ${wd}`;
+  }
+
+  // 时钟页 - 更新所有主题
+  if (currentPageType === 1 || minuteChanged) {
+    updateClockThemes(h, m, s, wd, dateStr, now);
+  }
+
+  lastH = h; lastM = m; lastS = s; lastDay = dayStr;
+}
+
+function updateClockThemes(h, m, s, wd, dateStr, now) {
+  // 经典
+  document.getElementById('theme-classic-time').innerHTML = `${h}<span class="clock-colon">:</span>${m}<span class="clock-seconds">${s}</span>`;
+  document.getElementById('theme-classic-info').textContent = `${wd}　${dateStr}`;
+
+  // 极简
+  document.getElementById('theme-minimal-time').textContent = `${h}:${m}`;
+  document.getElementById('theme-minimal-info').textContent = `${wd} · ${dateStr}`;
+
+  // 霓虹
+  document.getElementById('theme-neon-h').textContent = h;
+  document.getElementById('theme-neon-m').textContent = m;
+  document.getElementById('theme-neon-info').textContent = `${wd} · ${dateStr}`;
+
+  // 表盘
+  renderAnalogClock(now, wd, dateStr);
+
+  // 翻页
+  document.getElementById('flip-h1').textContent = h[0];
+  document.getElementById('flip-h2').textContent = h[1];
+  document.getElementById('flip-m1').textContent = m[0];
+  document.getElementById('flip-m2').textContent = m[1];
+  document.getElementById('theme-flip-info').textContent = `${wd}　${dateStr}`;
+
+  // 渐变
+  document.getElementById('theme-gradient-time').textContent = `${h}:${m}`;
+  document.getElementById('theme-gradient-info').textContent = `${wd} · ${dateStr}`;
+
+  // 浮光
+  document.getElementById('theme-aurora-time').textContent = `${h}:${m}`;
+  document.getElementById('theme-aurora-info').textContent = `${wd} · ${dateStr}`;
+
+  // 终端
+  document.getElementById('theme-pixel-time').textContent = `${h}:${m}:${s}`;
+  document.getElementById('theme-pixel-info').textContent = `// ${wd} ${dateStr}`;
+}
+
+function renderAnalogClock(now, wd, dateStr) {
+  const hours = now.getHours() % 12;
+  const mins = now.getMinutes();
+  const secs = now.getSeconds();
+
+  const hourDeg = (hours + mins / 60) * 30;
+  const minDeg = (mins + secs / 60) * 6;
+  const secDeg = secs * 6;
+
+  let marks = '';
+  const nums = [12,1,2,3,4,5,6,7,8,9,10,11];
+  for (let i = 0; i < 12; i++) {
+    const angle = i * 30;
+    const isMajor = i % 3 === 0;
+    const r = 46;
+    const rad = (angle - 90) * Math.PI / 180;
+    const x = 50 + r * Math.cos(rad);
+    const y = 50 + r * Math.sin(rad);
+    marks += `<div class="analog-mark ${isMajor ? 'analog-mark-major' : 'analog-mark-minor'}" style="position:absolute;top:${y}%;left:${x}%;transform:translate(-50%,-50%) rotate(${angle}deg)"><div class="analog-mark-line"></div></div>`;
+    if (isMajor) {
+      const nr = 38;
+      const nx = 50 + nr * Math.cos(rad);
+      const ny = 50 + nr * Math.sin(rad);
+      marks += `<div class="analog-number" style="top:${ny}%;left:${nx}%">${nums[i]}</div>`;
+    }
+  }
+
+  const container = document.getElementById('theme-analog');
+  if (container) {
+    container.innerHTML = `
+      <div class="analog-face">
+        <div class="analog-ring"></div>
+        <div class="analog-inner-ring"></div>
+        ${marks}
+        <div class="analog-hand hand-hour" style="transform:rotate(${hourDeg}deg)"></div>
+        <div class="analog-hand hand-minute" style="transform:rotate(${minDeg}deg)"></div>
+        ${lowPowerMode ? '' : `<div class="analog-hand hand-second" style="transform:rotate(${secDeg}deg)"></div>`}
+        <div class="analog-center"></div>
+      </div>
+      <div class="analog-date-text">${wd}　${dateStr}</div>
+    `;
+  }
+}
+
+// ============================================
+// 照片轮播
+// ============================================
+function cyclePhoto() {
+  if (currentPageType !== 2) return;
+  photoIndex = (photoIndex + 1) % photoGradients.length;
+  DOM.photoBg.style.background = photoGradients[photoIndex];
+  DOM.photoIcon.textContent = photoIcons[photoIndex];
+}
+
+// ============================================
+// 滑动交互（上下切换页面类型，左右切换主题）
+// ============================================
+function setupSwipe() {
+  let startX = 0, startY = 0, isDragging = false;
+
+  document.addEventListener('touchstart', (e) => {
+    // 设置面板打开时不处理
+    if (document.getElementById('settings-panel').classList.contains('open')) return;
+    
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isDragging = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    
+    // 设置面板打开时不处理
+    if (document.getElementById('settings-panel').classList.contains('open')) return;
+
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+
+    if (Math.max(absDx, absDy) < 50) return; // 滑动距离太小
+
+    if (absDy > absDx) {
+      // 上下滑动 - 切换页面类型
+      if (dy < 0 && currentPageType < totalPageTypes - 1) {
+        currentPageType++;
+        updatePageTypeUI();
+      } else if (dy > 0 && currentPageType > 0) {
+        currentPageType--;
+        updatePageTypeUI();
+      }
+    } else if (currentPageType === 1) {
+      // 左右滑动 - 仅在时钟页切换主题
+      if (dx < 0 && currentTheme < totalThemes - 1) {
+        currentTheme++;
+        updateThemeUI();
+      } else if (dx > 0 && currentTheme > 0) {
+        currentTheme--;
+        updateThemeUI();
+      }
+    }
+  }, { passive: true });
+}
+
+function updatePageTypeUI() {
+  DOM.pagesVertical.style.transform = `translateY(-${currentPageType * 100}%)`;
+  
+  // 更新页面指示器
+  DOM.pageIndicator.querySelectorAll('.indicator-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === currentPageType);
+  });
+
+  // 时钟页显示主题指示器，其他页隐藏
+  DOM.themeIndicator.style.opacity = currentPageType === 1 ? '1' : '0';
+
+  // 调整刷新频率
+  startClockTimer();
+  
+  // 照片页初始化
+  if (currentPageType === 2) {
+    DOM.photoBg.style.background = photoGradients[photoIndex];
+    DOM.photoIcon.textContent = photoIcons[photoIndex];
+  }
+}
+
+function updateThemeUI() {
+  DOM.themesHorizontal.style.transform = `translateX(-${currentTheme * 100}%)`;
+  
+  // 更新主题指示器
+  DOM.themeIndicator.querySelectorAll('.theme-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === currentTheme);
+  });
+
+  // 调整刷新频率
+  startClockTimer();
+}
+
+// ============================================
+// 注视感知
+// ============================================
+function toggleAttention() {
+  attentionEnabled = !attentionEnabled;
+  localStorage.setItem('standby-attention', attentionEnabled);
+  document.getElementById('toggle-attention').classList.toggle('on', attentionEnabled);
+  if (attentionEnabled) startFaceDetection();
+  else stopFaceDetection();
+}
+
+async function startFaceDetection() {
+  try {
+    if (typeof FaceDetector !== 'undefined') {
+      faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      const video = document.getElementById('face-video');
+      videoStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: 320, height: 240 }
+      });
+      video.srcObject = videoStream;
+      await video.play();
+
+      faceDetectInterval = setInterval(async () => {
+        try {
+          const faces = await faceDetector.detect(video);
+          setLookingState(faces.length > 0);
+        } catch(e) {}
+      }, lowPowerMode ? 1500 : 500);
+
+      updateAttentionUI();
+      startDimTimer();
+      return;
+    }
+  } catch(e) {}
+
+  await startSimpleFaceDetection();
+}
+
+async function startSimpleFaceDetection() {
+  try {
+    const video = document.getElementById('face-video');
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 160, height: 120 }
+    });
+    video.srcObject = videoStream;
+    await video.play();
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 160; canvas.height = 120;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let prevData = null;
+
+    const interval = lowPowerMode ? 2000 : 800;
+    faceDetectInterval = setInterval(() => {
+      ctx.drawImage(video, 0, 0, 160, 120);
+      const data = ctx.getImageData(0, 0, 160, 120).data;
+
+      if (prevData) {
+        let diff = 0;
+        for (let i = 0; i < data.length; i += 160) {
+          diff += Math.abs(data[i] - prevData[i]);
+        }
+        setLookingState(diff / (data.length / 160) > 3);
+      }
+      prevData = new Uint8Array(data);
+    }, interval);
+
+    updateAttentionUI();
+    startDimTimer();
+  } catch(e) {
+    DOM.eyeLabel.textContent = '✕';
+  }
+}
+
+function setLookingState(looking) {
+  if (gazeDetectPaused) return;
+  if (looking === isUserLooking) return;
+  isUserLooking = looking;
+  updateAttentionUI();
+
+  if (looking) {
+    clearDimTimer();
+    undim();
+    startGazeBrightPeriod();
+  } else {
+    startDimTimer();
+  }
+}
+
+function startGazeBrightPeriod() {
+  if (gazeBrightTimer) { clearTimeout(gazeBrightTimer); gazeBrightTimer = null; }
+
+  gazeDetectPaused = true;
+  pauseFaceDetection();
+  DOM.eyeLabel.textContent = '☀️';
+
+  gazeBrightTimer = setTimeout(() => {
+    gazeBrightTimer = null;
+    gazeDetectPaused = false;
+    isUserLooking = false;
+
+    resumeFaceDetection();
+    DOM.eyeLabel.textContent = '👁️';
+    startDimTimer();
+  }, GAZE_BRIGHT_DURATION);
+}
+
+function pauseFaceDetection() {
+  if (faceDetectInterval) {
+    clearInterval(faceDetectInterval);
+    faceDetectInterval = null;
+  }
+}
+
+function resumeFaceDetection() {
+  if (!attentionEnabled || faceDetectInterval) return;
+  const video = document.getElementById('face-video');
+  if (!video || !videoStream) return;
+
+  if (faceDetector) {
+    faceDetectInterval = setInterval(async () => {
+      try {
+        const faces = await faceDetector.detect(video);
+        setLookingState(faces.length > 0);
+      } catch(e) {}
+    }, lowPowerMode ? 1500 : 500);
+  } else {
+    const canvas = document.createElement('canvas');
+    canvas.width = 160; canvas.height = 120;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let prevData = null;
+    const interval = lowPowerMode ? 2000 : 800;
+    faceDetectInterval = setInterval(() => {
+      ctx.drawImage(video, 0, 0, 160, 120);
+      const data = ctx.getImageData(0, 0, 160, 120).data;
+      if (prevData) {
+        let diff = 0;
+        for (let i = 0; i < data.length; i += 160) {
+          diff += Math.abs(data[i] - prevData[i]);
+        }
+        setLookingState(diff / (data.length / 160) > 3);
+      }
+      prevData = new Uint8Array(data);
+    }, interval);
+  }
+}
+
+function stopFaceDetection() {
+  if (faceDetectInterval) { clearInterval(faceDetectInterval); faceDetectInterval = null; }
+  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  if (gazeBrightTimer) { clearTimeout(gazeBrightTimer); gazeBrightTimer = null; }
+  faceDetector = null;
+  isUserLooking = false;
+  gazeDetectPaused = false;
+  clearDimTimer();
+  undim();
+  updateAttentionUI();
+}
+
+function updateAttentionUI() {
+  if (!attentionEnabled) {
+    DOM.statusEye.classList.remove('looking');
+    DOM.eyeLabel.textContent = '✕';
+    return;
+  }
+  if (gazeDetectPaused) {
+    DOM.statusEye.classList.add('looking');
+    DOM.eyeLabel.textContent = '☀️';
+    return;
+  }
+  DOM.statusEye.classList.toggle('looking', isUserLooking);
+  DOM.eyeLabel.textContent = isUserLooking ? '👁️' : '';
+}
+
+// ============================================
+// 变暗/恢复
+// ============================================
+function startDimTimer() {
+  clearDimTimer();
+  dimTimer = setTimeout(() => {
+    DOM.dimOverlay.classList.add('dimmed');
+  }, DIM_DELAY);
+}
+
+function clearDimTimer() {
+  if (dimTimer) { clearTimeout(dimTimer); dimTimer = null; }
+}
+
+function undim() {
+  DOM.dimOverlay.classList.remove('dimmed');
+}
+
+// ============================================
+// 夜间模式 & 省电模式
+// ============================================
+function toggleNight() {
+  nightMode = !nightMode;
+  localStorage.setItem('standby-night', nightMode);
+  document.getElementById('toggle-night').classList.toggle('on', nightMode);
+  document.body.classList.toggle('night-mode', nightMode);
+}
+
+function toggleLowPower() {
+  lowPowerMode = !lowPowerMode;
+  localStorage.setItem('standby-lowpower', lowPowerMode);
+  document.getElementById('toggle-lowpower').classList.toggle('on', lowPowerMode);
+  document.body.classList.toggle('low-power', lowPowerMode);
+  startClockTimer();
+
+  if (attentionEnabled) {
+    stopFaceDetection();
+    startFaceDetection();
+  }
+}
+
+// ============================================
+// 错误捕获
+// ============================================
+window.onerror = function(msg, url, line) {
+  console.error('Error:', msg, 'at line', line);
+};
+</script>
+
+</body>
+</html>
