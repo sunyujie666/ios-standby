@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StandBy">
+<title>StandBy Mode</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕐</text></svg>">
+<style>
+  /* ===== 全局 ===== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+    font-family: -apple-system, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ===== 引导页 ===== */
+  #guide-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 40px 30px;
+    text-align: center;
+    transition: opacity 0.5s;
+  }
+  #guide-overlay.hidden { opacity: 0; pointer-events: none; display: none; }
+
+  .guide-icon { font-size: 64px; margin-bottom: 24px; }
+  .guide-title { font-size: 28px; font-weight: 700; margin-bottom: 12px; }
+  .guide-desc { font-size: 15px; color: #aaa; line-height: 1.6; margin-bottom: 32px; max-width: 340px; }
+  
+  .guide-steps {
+    text-align: left;
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+    max-width: 340px;
+    width: 100%;
+  }
+  .guide-step {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 14px; color: #ccc; line-height: 1.5;
+  }
+  .guide-step:last-child { border-bottom: none; }
+  .step-num {
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: #ff9500;
+    color: #000;
+    font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .guide-btn {
+    background: #ff9500;
+    color: #000;
+    border: none;
+    padding: 14px 48px;
+    border-radius: 50px;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    -webkit-tap-highlight-color: rgba(255,149,0,0.3);
+    -webkit-appearance: none;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .guide-btn:active { transform: scale(0.96); opacity: 0.8; }
+
+  /* ===== 主容器 ===== */
+  #app {
+    width: 100%; height: 100%;
+    position: relative;
+    display: none;
+  }
+  #app.active { display: flex; align-items: center; justify-content: center; }
+
+  /* ===== 页面切换容器 ===== */
+  .pages-container {
+    width: 100%; height: 100%;
+    display: flex;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+  }
+  .page {
+    min-width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  /* ===== 页面指示器 ===== */
+  .page-dots {
+    position: fixed;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 8px;
+    z-index: 50;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    transition: all 0.3s;
+  }
+  .dot.active { background: rgba(255,255,255,0.8); width: 20px; border-radius: 4px; }
+
+  /* ===== 顶部状态栏 ===== */
+  .status-bar {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    right: 16px;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 50;
+    font-size: 11px;
+    color: rgba(255,255,255,0.4);
+  }
+  .status-eye {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 8px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 10px;
+    transition: all 0.3s;
+  }
+  .status-eye.looking { color: #30d158; }
+  .status-eye .eye-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #666;
+    transition: background 0.3s;
+  }
+  .status-eye.looking .eye-dot { background: #30d158; }
+
+  /* ===== 设置按钮 ===== */
+  .settings-btn {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    left: 16px;
+    z-index: 50;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    color: rgba(255,255,255,0.4);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.3s;
+  }
+
+  /* ===== 设置面板 ===== */
+  #settings-panel {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.92);
+    -webkit-backdrop-filter: blur(30px);
+    backdrop-filter: blur(30px);
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+    padding: max(60px, env(safe-area-inset-top) + 20px) 24px 40px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #settings-panel.open { display: flex; }
+
+  .settings-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 28px;
+  }
+  .settings-title { font-size: 28px; font-weight: 700; }
+  .settings-close {
+    background: rgba(255,255,255,0.1);
+    border: none; border-radius: 50%;
+    width: 32px; height: 32px;
+    color: #fff; font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .setting-group {
+    margin-bottom: 24px;
+  }
+  .setting-group-title {
+    font-size: 13px; font-weight: 600;
+    color: #888; text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+    padding-left: 4px;
+  }
+  .setting-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 12px;
+    margin-bottom: 2px;
+  }
+  .setting-item:first-of-type { border-radius: 12px 12px 2px 2px; }
+  .setting-item:last-of-type { border-radius: 2px 2px 12px 12px; margin-bottom: 0; }
+  .setting-item:only-of-type { border-radius: 12px; }
+  .setting-label { font-size: 16px; }
+  .setting-desc { font-size: 12px; color: #888; margin-top: 2px; }
+
+  /* iOS 风格开关 */
+  .toggle {
+    position: relative;
+    width: 51px; height: 31px;
+    background: #39393d;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .toggle.on { background: #30d158; }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 27px; height: 27px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  }
+  .toggle.on::after { transform: translateX(20px); }
+
+  /* 主题选择 */
+  .theme-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .theme-card {
+    padding: 16px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+  }
+  .theme-card.active { border-color: #ff9500; }
+  .theme-card-icon { font-size: 32px; margin-bottom: 6px; }
+  .theme-card-name { font-size: 13px; font-weight: 600; }
+
+  /* ===== 第1页: 双列小组件 ===== */
+  .dual-widget {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    align-items: stretch;
+  }
+  .widget-col {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    padding: 20px;
+  }
+  .widget-clock {
+    background: rgba(255, 149, 0, 0.08);
+  }
+  .widget-calendar {
+    background: rgba(0, 199, 190, 0.08);
+  }
+
+  .widget-time {
+    font-size: clamp(36px, 10vw, 68px);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #ff9500;
+    letter-spacing: -1px;
+  }
+  .widget-weekday {
+    font-size: clamp(14px, 3vw, 20px);
+    font-weight: 500;
+    color: rgba(255, 149, 0, 0.6);
+    margin-top: 4px;
+  }
+  .widget-date-small {
+    font-size: clamp(12px, 2.5vw, 16px);
+    color: rgba(255, 149, 0, 0.4);
+    margin-top: 2px;
+  }
+
+  .cal-month {
+    font-size: clamp(14px, 3vw, 20px);
+    font-weight: 600;
+    color: #00c7be;
+  }
+  .cal-day {
+    font-size: clamp(48px, 12vw, 80px);
+    font-weight: 700;
+    color: #00c7be;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .cal-weekday {
+    font-size: clamp(12px, 2.5vw, 16px);
+    font-weight: 500;
+    color: rgba(0, 199, 190, 0.5);
+    margin-top: 4px;
+  }
+
+  /* ===== 第2页: 全屏时钟 ===== */
+  /* 经典主题 */
+  .clock-classic .clock-time {
+    font-size: clamp(60px, 20vw, 140px);
+    font-weight: 800;
+    letter-spacing: -4px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .clock-classic .clock-colon {
+    opacity: 0.4;
+    animation: blink 2s infinite;
+  }
+  .clock-classic .clock-info {
+    font-size: clamp(14px, 3vw, 24px);
+    color: #888;
+    margin-top: 8px;
+    font-weight: 500;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* 极简主题 */
+  .clock-minimal .clock-time {
+    font-size: clamp(50px, 18vw, 120px);
+    font-weight: 200;
+    letter-spacing: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .clock-minimal .clock-divider {
+    width: 50px; height: 1px;
+    background: rgba(255,255,255,0.15);
+    margin: 16px 0;
+  }
+  .clock-minimal .clock-info {
+    font-size: clamp(12px, 2.5vw, 18px);
+    font-weight: 300;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 2px;
+  }
+
+  /* 霓虹主题 */
+  .clock-neon .clock-time {
+    font-size: clamp(56px, 18vw, 130px);
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .clock-neon .neon-hour {
+    color: #bf5af2;
+    text-shadow: 0 0 20px rgba(191,90,242,0.6), 0 0 60px rgba(191,90,242,0.3);
+    animation: glow-purple 3s ease-in-out infinite;
+  }
+  .clock-neon .neon-colon {
+    color: #bf5af2;
+    opacity: 0.6;
+    margin: 0 4px;
+  }
+  .clock-neon .neon-min {
+    color: #64d2ff;
+    text-shadow: 0 0 20px rgba(100,210,255,0.6), 0 0 60px rgba(100,210,255,0.3);
+    animation: glow-cyan 3s ease-in-out infinite;
+  }
+  .clock-neon .clock-info {
+    font-size: clamp(12px, 2.5vw, 18px);
+    font-family: 'Courier New', monospace;
+    color: rgba(191,90,242,0.4);
+    margin-top: 12px;
+    text-shadow: 0 0 10px rgba(191,90,242,0.2);
+  }
+  @keyframes glow-purple {
+    0%, 100% { text-shadow: 0 0 20px rgba(191,90,242,0.6), 0 0 60px rgba(191,90,242,0.3); }
+    50% { text-shadow: 0 0 30px rgba(191,90,242,0.8), 0 0 80px rgba(191,90,242,0.4); }
+  }
+  @keyframes glow-cyan {
+    0%, 100% { text-shadow: 0 0 20px rgba(100,210,255,0.6), 0 0 60px rgba(100,210,255,0.3); }
+    50% { text-shadow: 0 0 30px rgba(100,210,255,0.8), 0 0 80px rgba(100,210,255,0.4); }
+  }
+
+  /* 模拟表盘主题 */
+  .clock-analog {
+    position: relative;
+  }
+  .analog-face {
+    position: relative;
+    width: clamp(180px, 45vmin, 320px);
+    height: clamp(180px, 45vmin, 320px);
+  }
+  .analog-ring {
+    position: absolute; inset: 0;
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+  }
+  .analog-mark {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform-origin: 0 0;
+  }
+  .analog-mark-line {
+    width: 2px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 1px;
+  }
+  .analog-mark-major .analog-mark-line {
+    width: 3px;
+    height: 16px;
+    background: rgba(255,255,255,0.6);
+  }
+  .analog-mark-minor .analog-mark-line {
+    height: 8px;
+  }
+  .analog-hand {
+    position: absolute;
+    bottom: 50%; left: 50%;
+    transform-origin: bottom center;
+    border-radius: 2px;
+  }
+  .hand-hour {
+    width: 5px;
+    height: 28%;
+    background: #fff;
+    margin-left: -2.5px;
+  }
+  .hand-minute {
+    width: 3px;
+    height: 38%;
+    background: rgba(255,255,255,0.8);
+    margin-left: -1.5px;
+  }
+  .hand-second {
+    width: 1.5px;
+    height: 42%;
+    background: #ff9500;
+    margin-left: -0.75px;
+  }
+  .analog-center {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 10px; height: 10px;
+    margin: -5px;
+    border-radius: 50%;
+    background: #ff9500;
+  }
+
+  /* ===== 第3页: 照片/渐变 ===== */
+  .photo-page {
+    position: relative;
+  }
+  .photo-bg {
+    position: absolute; inset: 0;
+    opacity: 0.3;
+    transition: background 2s ease;
+  }
+  .photo-icon {
+    font-size: clamp(60px, 20vw, 120px);
+    z-index: 1;
+    transition: all 1s ease;
+  }
+  .photo-time {
+    position: absolute;
+    bottom: max(50px, env(safe-area-inset-bottom) + 30px);
+    left: 32px;
+    z-index: 1;
+  }
+  .photo-time-text {
+    font-size: clamp(28px, 6vw, 40px);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .photo-time-date {
+    font-size: clamp(12px, 2vw, 15px);
+    color: rgba(255,255,255,0.5);
+    margin-top: 2px;
+  }
+
+  /* ===== 夜间红色模式 ===== */
+  body.night-mode {
+    filter: saturate(0) brightness(0.6);
+  }
+  body.night-mode #app {
+    filter: sepia(1) hue-rotate(-30deg) saturate(3) brightness(0.5);
+  }
+
+  /* ===== 调暗遮罩（无人注视） ===== */
+  #dim-overlay {
+    position: fixed; inset: 0;
+    background: #000;
+    opacity: 0;
+    z-index: 100;
+    pointer-events: none;
+    transition: opacity 1.5s ease;
+  }
+  #dim-overlay.dimmed { opacity: 0.85; }
+
+  /* ===== 隐藏视频（用于面部检测） ===== */
+  #face-video {
+    position: fixed;
+    top: -9999px; left: -9999px;
+    width: 1px; height: 1px;
+    opacity: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- 引导页 -->
+<div id="guide-overlay">
+  <div class="guide-icon">📱</div>
+  <div class="guide-title">StandBy Mode</div>
+  <div class="guide-desc">无需充电，将 iPhone 横放即可变身智能时钟</div>
+  <div class="guide-steps">
+    <div class="guide-step">
+      <span class="step-num">1</span>
+      <span>点击下方「启动」按钮进入全屏</span>
+    </div>
+    <div class="guide-step">
+      <span class="step-num">2</span>
+      <span>将 iPhone 横屏放置在桌面上</span>
+    </div>
+    <div class="guide-step">
+      <span class="step-num">3</span>
+      <span>左右滑动切换不同页面</span>
+    </div>
+    <div class="guide-step">
+      <span class="step-num">4</span>
+      <span>可开启「注视感知」- 看一眼就亮屏 👁️</span>
+    </div>
+  </div>
+  <button class="guide-btn" id="start-btn">启动 StandBy</button>
+</div>
+
+<!-- 主应用 -->
+<div id="app">
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <div class="status-eye" id="status-eye">
+      <span class="eye-dot"></span>
+      <span id="eye-label">注视关闭</span>
+    </div>
+  </div>
+
+  <!-- 设置按钮 -->
+  <button class="settings-btn" id="settings-open-btn">⚙</button>
+
+  <!-- 页面容器 -->
+  <div class="pages-container" id="pages">
+    <!-- 第1页: 双列小组件 -->
+    <div class="page" id="page-widgets">
+      <div class="dual-widget">
+        <div class="widget-col widget-clock">
+          <div style="text-align:center">
+            <div class="widget-time" id="w-time">00:00</div>
+            <div class="widget-weekday" id="w-weekday">星期一</div>
+            <div class="widget-date-small" id="w-date">1月1日</div>
+          </div>
+        </div>
+        <div class="widget-col widget-calendar">
+          <div style="text-align:center">
+            <div class="cal-month" id="w-cal-month">一月</div>
+            <div class="cal-day" id="w-cal-day">1</div>
+            <div class="cal-weekday" id="w-cal-weekday">星期一</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 第2页: 全屏时钟 -->
+    <div class="page" id="page-clock">
+      <div id="clock-container"></div>
+    </div>
+
+    <!-- 第3页: 照片展示 -->
+    <div class="page photo-page" id="page-photo">
+      <div class="photo-bg" id="photo-bg"></div>
+      <div class="photo-icon" id="photo-icon">🏔️</div>
+      <div class="photo-time">
+        <div class="photo-time-text" id="photo-time">00:00</div>
+        <div class="photo-time-date" id="photo-date">1月1日 星期一</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页面指示器 -->
+  <div class="page-dots" id="page-dots">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+</div>
+
+<!-- 调暗遮罩 -->
+<div id="dim-overlay"></div>
+
+<!-- 设置面板 -->
+<div id="settings-panel">
+  <div class="settings-header">
+    <span class="settings-title">设置</span>
+    <button class="settings-close" id="settings-close-btn">✕</button>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">👁️ 注视感知</div>
+    <div class="setting-item">
+      <div>
+        <div class="setting-label">人眼注视感知</div>
+        <div class="setting-desc">注视屏幕时保持亮屏，移开视线自动变暗</div>
+      </div>
+      <div class="toggle" id="toggle-attention" onclick="toggleAttention()"></div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">🌙 夜间模式</div>
+    <div class="setting-item">
+      <div>
+        <div class="setting-label">红色夜间模式</div>
+        <div class="setting-desc">低光环境自动切换红色调</div>
+      </div>
+      <div class="toggle" id="toggle-night" onclick="toggleNight()"></div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">🎨 时钟主题</div>
+    <div class="theme-options">
+      <div class="theme-card active" data-theme="classic" onclick="setTheme('classic')">
+        <div class="theme-card-icon">🕐</div>
+        <div class="theme-card-name">经典</div>
+      </div>
+      <div class="theme-card" data-theme="minimal" onclick="setTheme('minimal')">
+        <div class="theme-card-icon">✨</div>
+        <div class="theme-card-name">极简</div>
+      </div>
+      <div class="theme-card" data-theme="neon" onclick="setTheme('neon')">
+        <div class="theme-card-icon">💜</div>
+        <div class="theme-card-name">霓虹</div>
+      </div>
+      <div class="theme-card" data-theme="analog" onclick="setTheme('analog')">
+        <div class="theme-card-icon">⏱️</div>
+        <div class="theme-card-name">表盘</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <div class="setting-group-title">ℹ️ 使用说明</div>
+    <div class="setting-item" style="border-radius:12px; flex-direction:column; align-items:flex-start; gap:8px;">
+      <div class="setting-desc" style="line-height:1.8">
+        📌 <b>不充电即可使用</b> — 直接横放手机<br>
+        📌 <b>添加到主屏幕</b> — Safari 分享 → 添加到主屏幕<br>
+        📌 <b>保持常亮</b> — 设置 → 显示与亮度 → 自动锁定 → 永不<br>
+        📌 <b>注视感知</b> — 利用前置摄像头检测人脸<br>
+        📌 <b>左右滑动</b> — 切换小组件/时钟/照片页面
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 隐藏的视频元素（面部检测用） -->
+<video id="face-video" autoplay playsinline></video>
+
+<script>
+// ============================================
+// 全局状态
+// ============================================
+let currentPage = 0;
+const totalPages = 3;
+let currentTheme = localStorage.getItem('standby-theme') || 'classic';
+let attentionEnabled = localStorage.getItem('standby-attention') === 'true';
+let nightMode = localStorage.getItem('standby-night') === 'true';
+let isUserLooking = false;
+let dimTimer = null;
+const DIM_DELAY = 6000; // 6秒无注视后变暗
+
+// 面部检测
+let faceDetector = null;
+let videoStream = null;
+let faceDetectInterval = null;
+
+// 照片页轮播
+const photoGradients = [
+  'linear-gradient(135deg, #667eea, #764ba2)',
+  'linear-gradient(135deg, #f093fb, #f5576c)',
+  'linear-gradient(135deg, #4facfe, #00f2fe)',
+  'linear-gradient(135deg, #43e97b, #38f9d7)',
+  'linear-gradient(135deg, #fa709a, #fee140)',
+];
+const photoIcons = ['🏔️', '🌅', '☀️', '🍃', '✨'];
+let photoIndex = 0;
+
+// ============================================
+// 初始化
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+  // 恢复设置
+  if (attentionEnabled) document.getElementById('toggle-attention').classList.add('on');
+  if (nightMode) {
+    document.getElementById('toggle-night').classList.add('on');
+    document.body.classList.add('night-mode');
+  }
+  setTheme(currentTheme);
+  updateAllClocks();
+  setInterval(updateAllClocks, 1000);
+  setInterval(cyclePhoto, 10000);
+
+  // 启动按钮 — 同时绑定 click 和 touchend 确保 iOS Safari 兼容
+  const startBtn = document.getElementById('start-btn');
+  let startTriggered = false;
+  
+  function handleStart(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (startTriggered) return; // 防止重复触发
+    startTriggered = true;
+    console.log('📱 启动按钮被点击 (event: ' + e.type + ')');
+    startStandBy();
+  }
+  
+  startBtn.addEventListener('click', handleStart);
+  startBtn.addEventListener('touchend', handleStart);
+  
+  document.getElementById('settings-open-btn').addEventListener('click', () => {
+    document.getElementById('settings-panel').classList.add('open');
+  });
+  document.getElementById('settings-close-btn').addEventListener('click', () => {
+    document.getElementById('settings-panel').classList.remove('open');
+  });
+
+  // 滑动手势
+  setupSwipe();
+  
+  console.log('✅ StandBy 初始化完成');
+});
+
+function startStandBy() {
+  console.log('🚀 startStandBy 被触发');
+  
+  const guide = document.getElementById('guide-overlay');
+  const app = document.getElementById('app');
+  
+  // 立即隐藏引导页，显示主界面
+  guide.style.transition = 'opacity 0.4s';
+  guide.style.opacity = '0';
+  guide.style.pointerEvents = 'none';
+  app.classList.add('active');
+  
+  setTimeout(() => { guide.style.display = 'none'; }, 500);
+
+  // 尝试全屏（iOS Safari 不支持，会安全失败）
+  tryFullscreen();
+
+  // 请求屏幕常亮
+  requestWakeLock();
+
+  // 如果开启了注视感知，启动面部检测
+  if (attentionEnabled) startFaceDetection();
+  
+  console.log('✅ StandBy 已启动');
+}
+
+// ============================================
+// 全屏 & 屏幕常亮
+// ============================================
+function tryFullscreen() {
+  try {
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else if (document.documentElement.webkitRequestFullscreen) {
+      document.documentElement.webkitRequestFullscreen();
+    }
+  } catch(e) {
+    // Safari 不支持全屏 — PWA 模式下本来就是全屏
+    console.log('全屏不可用，建议添加到主屏幕使用');
+  }
+}
+
+let wakeLock = null;
+let noSleepVideo = null;
+
+async function requestWakeLock() {
+  // 方案1: 标准 Wake Lock API（Chrome、较新 Safari 支持）
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      console.log('✅ 屏幕常亮已启用 (Wake Lock API)');
+      return;
+    }
+  } catch(e) {
+    console.log('Wake Lock API 失败:', e.message);
+  }
+  
+  // 方案2: iOS Safari 兼容方案 — 循环播放无声视频防止锁屏
+  enableNoSleepFallback();
+}
+
+function enableNoSleepFallback() {
+  try {
+    // 创建一个极小的内联无声视频（data URI），循环播放可防止 iOS Safari 锁屏
+    if (noSleepVideo) return;
+    
+    noSleepVideo = document.createElement('video');
+    noSleepVideo.setAttribute('playsinline', '');
+    noSleepVideo.setAttribute('webkit-playsinline', '');
+    noSleepVideo.setAttribute('loop', '');
+    noSleepVideo.setAttribute('muted', '');
+    noSleepVideo.muted = true;
+    noSleepVideo.style.cssText = 'position:fixed;top:-1px;left:-1px;width:1px;height:1px;opacity:0.01;';
+    
+    // 最小的 mp4 视频 (base64) — 1 帧黑色，几乎不耗电
+    noSleepVideo.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAFUWWIhAA3//728P4FNjuY0EcuAAVMAAAAB0AAAAN2n5gAAALDgAAAAMJYBAAFaagATEAAAAGBHhAAJoAAABgil0AAAO0IAABRgA+gAAAASkaQAADaAAAABjihAALmAAABa0AAALQAAAA1MBIAAAAEU/AAAM8YAA0RAAAAJQAAAAF1AAAAMKYAABNgAAADdAAAAG8AAAB7EAAAIoAAANAAAAKgAABXQAAAGoAAAAVYAAAC5gAAAGcAAAAhYAAAAvgAAAAfAAAADIAAAAIcAAAA6AAAACPAAAAA1AAAACB0AAAANUAAABegAAACrgAAAA/AAAAM0AAAAsYAAAAhwAAADLAAAALGAAAAIcAAABWAAAAYgAAABDAAAAO+AAAAUoAAAE+AAAAAEsAAAAKmAAAChAAAAA+AAAAi4AAAAPYAAAOcAAAC1gAAAAPQAAAAhQ=';
+    
+    document.body.appendChild(noSleepVideo);
+    
+    const playPromise = noSleepVideo.play();
+    if (playPromise) {
+      playPromise.then(() => {
+        console.log('✅ 屏幕常亮已启用 (NoSleep Video)');
+      }).catch(() => {
+        console.log('⚠️ 视频自动播放被阻止，点击屏幕后将重试');
+        // 首次触摸时重试
+        document.addEventListener('touchstart', function retryPlay() {
+          noSleepVideo.play().then(() => console.log('✅ 屏幕常亮已启用'));
+          document.removeEventListener('touchstart', retryPlay);
+        }, { once: true });
+      });
+    }
+  } catch(e) {
+    console.log('⚠️ NoSleep fallback 失败:', e.message);
+  }
+}
+
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    if (wakeLock === null && !noSleepVideo) {
+      await requestWakeLock();
+    }
+  }
+});
+
+// ============================================
+// 全局错误捕获（iPhone 没有控制台，显示在页面上）
+// ============================================
+window.onerror = function(msg, url, line) {
+  const errDiv = document.createElement('div');
+  errDiv.style.cssText = 'position:fixed;bottom:10px;left:10px;right:10px;background:rgba(255,0,0,0.9);color:#fff;padding:12px;border-radius:8px;font-size:12px;z-index:9999;word-break:break-all;';
+  errDiv.textContent = '❌ JS错误: ' + msg + ' (行' + line + ')';
+  document.body.appendChild(errDiv);
+  setTimeout(() => errDiv.remove(), 8000);
+};
+
+// 初始化照片背景
+document.getElementById('photo-bg').style.background = photoGradients[0];
+
+// ============================================
+// 时钟更新
+// ============================================
+function updateAllClocks() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+  
+  const weekdays = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  const months = ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'];
+  const wd = weekdays[now.getDay()];
+  const mon = months[now.getMonth()];
+  const day = now.getDate();
+  const dateStr = `${now.getMonth()+1}月${day}日`;
+
+  // 双列小组件
+  document.getElementById('w-time').textContent = `${h}:${m}`;
+  document.getElementById('w-weekday').textContent = wd;
+  document.getElementById('w-date').textContent = dateStr;
+  document.getElementById('w-cal-month').textContent = mon;
+  document.getElementById('w-cal-day').textContent = day;
+  document.getElementById('w-cal-weekday').textContent = wd;
+
+  // 全屏时钟
+  updateClockTheme(h, m, s, wd, dateStr, now);
+
+  // 照片页时间
+  document.getElementById('photo-time').textContent = `${h}:${m}`;
+  document.getElementById('photo-date').textContent = `${dateStr} ${wd}`;
+}
+
+function updateClockTheme(h, m, s, wd, dateStr, now) {
+  const container = document.getElementById('clock-container');
+  
+  switch(currentTheme) {
+    case 'classic':
+      container.className = 'clock-classic';
+      container.innerHTML = `
+        <div class="clock-time">${h}<span class="clock-colon">:</span>${m}</div>
+        <div class="clock-info">${wd}　${dateStr}</div>
+      `;
+      break;
+      
+    case 'minimal':
+      container.className = 'clock-minimal';
+      container.innerHTML = `
+        <div class="clock-time">${h}:${m}</div>
+        <div class="clock-divider"></div>
+        <div class="clock-info">${wd} · ${dateStr}</div>
+      `;
+      break;
+      
+    case 'neon':
+      container.className = 'clock-neon';
+      container.innerHTML = `
+        <div class="clock-time">
+          <span class="neon-hour">${h}</span><span class="neon-colon">:</span><span class="neon-min">${m}</span>
+        </div>
+        <div class="clock-info">${wd} · ${dateStr}</div>
+      `;
+      break;
+      
+    case 'analog':
+      container.className = 'clock-analog';
+      renderAnalogClock(container, now);
+      break;
+  }
+}
+
+function renderAnalogClock(container, now) {
+  const hours = now.getHours() % 12;
+  const mins = now.getMinutes();
+  const secs = now.getSeconds();
+  
+  const hourDeg = (hours + mins / 60) * 30;
+  const minDeg = (mins + secs / 60) * 6;
+  const secDeg = secs * 6;
+
+  let marks = '';
+  for (let i = 0; i < 12; i++) {
+    const angle = i * 30;
+    const isMajor = i % 3 === 0;
+    const r = 48; // % from center
+    const rad = (angle - 90) * Math.PI / 180;
+    const x = 50 + r * Math.cos(rad);
+    const y = 50 + r * Math.sin(rad);
+    marks += `<div class="analog-mark ${isMajor ? 'analog-mark-major' : 'analog-mark-minor'}" 
+      style="position:absolute;top:${y}%;left:${x}%;transform:translate(-50%,-50%) rotate(${angle}deg)">
+      <div class="analog-mark-line"></div></div>`;
+  }
+
+  container.innerHTML = `
+    <div class="analog-face">
+      <div class="analog-ring"></div>
+      ${marks}
+      <div class="analog-hand hand-hour" style="transform:rotate(${hourDeg}deg)"></div>
+      <div class="analog-hand hand-minute" style="transform:rotate(${minDeg}deg)"></div>
+      <div class="analog-hand hand-second" style="transform:rotate(${secDeg}deg)"></div>
+      <div class="analog-center"></div>
+    </div>
+  `;
+}
+
+// ============================================
+// 照片轮播
+// ============================================
+function cyclePhoto() {
+  photoIndex = (photoIndex + 1) % photoGradients.length;
+  document.getElementById('photo-bg').style.background = photoGradients[photoIndex];
+  document.getElementById('photo-icon').textContent = photoIcons[photoIndex];
+}
+
+// ============================================
+// 主题切换
+// ============================================
+function setTheme(theme) {
+  currentTheme = theme;
+  localStorage.setItem('standby-theme', theme);
+  document.querySelectorAll('.theme-card').forEach(c => {
+    c.classList.toggle('active', c.dataset.theme === theme);
+  });
+  updateAllClocks();
+}
+
+// ============================================
+// 页面滑动
+// ============================================
+function setupSwipe() {
+  const pages = document.getElementById('pages');
+  let startX = 0, startY = 0, isDragging = false;
+
+  pages.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isDragging = true;
+  }, { passive: true });
+
+  pages.addEventListener('touchend', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    const dy = e.changedTouches[0].clientY - startY;
+    
+    // 只处理水平滑动
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
+      if (dx < 0 && currentPage < totalPages - 1) {
+        currentPage++;
+      } else if (dx > 0 && currentPage > 0) {
+        currentPage--;
+      }
+      updatePage();
+    }
+  }, { passive: true });
+}
+
+function updatePage() {
+  const pages = document.getElementById('pages');
+  pages.style.transform = `translateX(-${currentPage * 100}%)`;
+  
+  document.querySelectorAll('.dot').forEach((d, i) => {
+    d.classList.toggle('active', i === currentPage);
+  });
+}
+
+// ============================================
+// 注视感知 (Face Detection API)
+// ============================================
+function toggleAttention() {
+  attentionEnabled = !attentionEnabled;
+  localStorage.setItem('standby-attention', attentionEnabled);
+  document.getElementById('toggle-attention').classList.toggle('on', attentionEnabled);
+  
+  if (attentionEnabled) {
+    startFaceDetection();
+  } else {
+    stopFaceDetection();
+  }
+}
+
+async function startFaceDetection() {
+  try {
+    // 先检测 FaceDetector API 是否可用
+    if (typeof FaceDetector === 'undefined') {
+      // FaceDetector 不可用，回退到简单方案
+      console.log('⚠️ FaceDetector API 不可用，使用视频流活动检测替代');
+      await startSimpleFaceDetection();
+      return;
+    }
+
+    faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+    
+    const video = document.getElementById('face-video');
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 320, height: 240 }
+    });
+    video.srcObject = videoStream;
+    await video.play();
+
+    faceDetectInterval = setInterval(async () => {
+      try {
+        const faces = await faceDetector.detect(video);
+        const looking = faces.length > 0;
+        
+        if (looking !== isUserLooking) {
+          isUserLooking = looking;
+          updateAttentionUI();
+          
+          if (looking) {
+            clearDimTimer();
+            undim();
+          } else {
+            startDimTimer();
+          }
+        }
+      } catch(e) { /* 忽略检测错误 */ }
+    }, 500);
+    
+    updateAttentionUI();
+    startDimTimer();
+    
+  } catch(e) {
+    console.log('面部检测启动失败:', e.message);
+    // 回退方案
+    await startSimpleFaceDetection();
+  }
+}
+
+// 简化版方案：使用摄像头视频帧差异检测是否有人
+async function startSimpleFaceDetection() {
+  try {
+    const video = document.getElementById('face-video');
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 160, height: 120 }
+    });
+    video.srcObject = videoStream;
+    await video.play();
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 160; canvas.height = 120;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    let prevData = null;
+
+    faceDetectInterval = setInterval(() => {
+      ctx.drawImage(video, 0, 0, 160, 120);
+      const imageData = ctx.getImageData(0, 0, 160, 120);
+      const data = imageData.data;
+
+      if (prevData) {
+        let diff = 0;
+        // 每隔 40 像素采样
+        for (let i = 0; i < data.length; i += 160) {
+          diff += Math.abs(data[i] - prevData[i]);
+        }
+        const avgDiff = diff / (data.length / 160);
+        
+        // 有运动 = 有人注视（简化判断）
+        const looking = avgDiff > 3;
+        
+        if (looking !== isUserLooking) {
+          isUserLooking = looking;
+          updateAttentionUI();
+          if (looking) { clearDimTimer(); undim(); }
+          else { startDimTimer(); }
+        }
+      }
+      prevData = new Uint8Array(data);
+    }, 800);
+
+    updateAttentionUI();
+    startDimTimer();
+  } catch(e) {
+    console.log('摄像头不可用:', e.message);
+    document.getElementById('eye-label').textContent = '摄像头不可用';
+  }
+}
+
+function stopFaceDetection() {
+  if (faceDetectInterval) clearInterval(faceDetectInterval);
+  if (videoStream) {
+    videoStream.getTracks().forEach(t => t.stop());
+    videoStream = null;
+  }
+  faceDetector = null;
+  isUserLooking = false;
+  clearDimTimer();
+  undim();
+  updateAttentionUI();
+}
+
+function updateAttentionUI() {
+  const el = document.getElementById('status-eye');
+  const label = document.getElementById('eye-label');
+  
+  if (!attentionEnabled) {
+    el.classList.remove('looking');
+    label.textContent = '注视关闭';
+    return;
+  }
+  
+  el.classList.toggle('looking', isUserLooking);
+  label.textContent = isUserLooking ? '正在注视 👁️' : '未检测到注视';
+}
+
+// ============================================
+// 变暗/恢复
+// ============================================
+function startDimTimer() {
+  clearDimTimer();
+  dimTimer = setTimeout(() => {
+    document.getElementById('dim-overlay').classList.add('dimmed');
+  }, DIM_DELAY);
+}
+
+function clearDimTimer() {
+  if (dimTimer) { clearTimeout(dimTimer); dimTimer = null; }
+}
+
+function undim() {
+  document.getElementById('dim-overlay').classList.remove('dimmed');
+}
+
+// 点击屏幕临时取消变暗
+document.addEventListener('touchstart', () => {
+  if (attentionEnabled) {
+    undim();
+    startDimTimer();
+  }
+});
+
+// ============================================
+// 夜间模式
+// ============================================
+function toggleNight() {
+  nightMode = !nightMode;
+  localStorage.setItem('standby-night', nightMode);
+  document.getElementById('toggle-night').classList.toggle('on', nightMode);
+  document.body.classList.toggle('night-mode', nightMode);
+}
+</script>
+
+</body>
+</html>
