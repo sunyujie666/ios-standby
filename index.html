@@ -1,0 +1,1943 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="StandBy">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<title>StandBy Mode</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕐</text></svg>">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiU3RhbmRCeSIsInNob3J0X25hbWUiOiJTdGFuZEJ5IiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzAwMDAwMCIsInRoZW1lX2NvbG9yIjoiIzAwMDAwMCIsIm9yaWVudGF0aW9uIjoibGFuZHNjYXBlIiwic3RhcnRfdXJsIjoiLiJ9">
+<!-- Google Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:wght@400;700;900&family=Orbitron:wght@400;500;700;900&family=Space+Mono:wght@400;700&family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ===== Reset & Global ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #000;
+  color: #fff;
+  font-family: 'Inter', 'DM Sans', -apple-system, 'SF Pro Display', sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  inset: 0;
+}
+
+/* ===== 引导页 ===== */
+#guide-overlay {
+  position: fixed; inset: 0;
+  background: #000;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+#guide-overlay.hiding { opacity: 0; pointer-events: none; }
+#guide-overlay.gone { display: none; }
+
+.guide-inner { text-align: center; max-width: 520px; padding: 32px; }
+.guide-emoji {
+  font-size: 72px;
+  margin-bottom: 20px;
+  animation: guide-float 3s ease-in-out infinite;
+}
+@keyframes guide-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.guide-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.guide-sub {
+  font-size: 16px;
+  color: rgba(255,255,255,0.45);
+  margin-bottom: 36px;
+  line-height: 1.5;
+  font-family: 'DM Sans', sans-serif;
+}
+.guide-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #ff9f0a, #ff6723);
+  color: #000;
+  border: none;
+  padding: 16px 48px;
+  border-radius: 100px;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 24px rgba(255,159,10,0.35);
+}
+.guide-start:active { transform: scale(0.96); }
+.guide-tips {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+}
+.guide-tip { text-align: center; }
+.guide-tip-icon { font-size: 24px; margin-bottom: 6px; }
+.guide-tip-text { font-size: 12px; color: rgba(255,255,255,0.3); line-height: 1.4; }
+.pwa-hint {
+  margin-top: 24px;
+  padding: 14px 20px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 16px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1.6;
+  display: none;
+}
+.pwa-hint.show { display: block; }
+.pwa-hint b { color: rgba(255,255,255,0.7); }
+
+/* ===== 主应用 ===== */
+#app { width: 100%; height: 100%; position: relative; overflow: hidden; }
+
+/* ===== 主布局：左时钟 + 右闹钟 ===== */
+.main-layout {
+  width: 100%; height: 100%;
+  display: flex;
+  align-items: stretch;
+  padding: 16px;
+  gap: 16px;
+}
+
+/* 左侧面板：时间+日期 */
+.left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 28px;
+  background: rgba(255,255,255,0.02);
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* 右侧面板：闹钟 */
+.right-panel {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 28px;
+  background: rgba(255,255,255,0.02);
+  overflow: hidden;
+  position: relative;
+}
+
+/* ===== 上下滑动切换主题 ===== */
+.theme-stack {
+  width: 100%; height: 100%;
+  position: relative;
+}
+.theme-item {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1), transform 0.45s cubic-bezier(0.4,0,0.2,1);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+.theme-item.active {
+  opacity: 1; transform: translateY(0); pointer-events: auto;
+}
+.theme-item.exit-up {
+  opacity: 0; transform: translateY(-30px);
+}
+
+/* 垂直指示器 */
+.dots-v {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+}
+.dot-v {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.15);
+  transition: all 0.4s;
+}
+.dot-v.on {
+  background: rgba(255,255,255,0.7);
+  height: 16px; border-radius: 3px;
+}
+
+/* ===== 顶部状态栏 ===== */
+.top-bar {
+  position: fixed;
+  top: max(8px, env(safe-area-inset-top, 8px));
+  left: 0; right: 0;
+  padding: 0 max(14px, env(safe-area-inset-right, 14px));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 50;
+  opacity: 1;
+  transition: opacity 3s ease;
+}
+.top-bar.fade { opacity: 0; }
+
+.btn-gear {
+  background: rgba(255,255,255,0.06);
+  border: none; border-radius: 50%;
+  width: 32px; height: 32px;
+  color: rgba(255,255,255,0.35);
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.btn-gear:active { background: rgba(255,255,255,0.12); }
+
+.eye-badge {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 100px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.35);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s;
+}
+.eye-badge.on { color: #30d158; background: rgba(48,209,88,0.1); }
+.eye-pip {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  transition: background 0.3s;
+}
+.eye-badge.on .eye-pip { background: #30d158; }
+
+/* ===== 时钟主题样式 ===== */
+
+/* 主题1: 经典粗体 — Inter */
+.t-classic { text-align: center; }
+.t-classic .t-time {
+  font-family: 'Inter', sans-serif;
+  font-size: clamp(80px, 20vw, 180px);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -6px;
+  line-height: 0.9;
+  color: #fff;
+}
+.t-classic .t-colon { opacity: 0.3; animation: blink 2s ease-in-out infinite; }
+.t-classic .t-sec {
+  font-size: clamp(24px, 6vw, 48px);
+  font-weight: 300;
+  color: rgba(255,255,255,0.2);
+  vertical-align: super;
+  margin-left: 6px;
+  letter-spacing: 0;
+}
+.t-classic .t-date {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(16px, 3.5vw, 26px);
+  color: rgba(255,255,255,0.3);
+  margin-top: 12px;
+  font-weight: 400;
+  letter-spacing: 2px;
+}
+
+/* 主题2: 优雅衬线 — Playfair Display */
+.t-serif { text-align: center; }
+.t-serif .t-time {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(80px, 20vw, 180px);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -4px;
+  line-height: 0.9;
+  color: #fff;
+  font-style: italic;
+}
+.t-serif .t-date {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(16px, 3.5vw, 26px);
+  color: rgba(255,255,255,0.25);
+  margin-top: 16px;
+  font-weight: 400;
+  letter-spacing: 3px;
+  font-style: italic;
+}
+
+/* 主题3: 科技感 — Orbitron */
+.t-tech { text-align: center; }
+.t-tech .t-time {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(70px, 16vw, 150px);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 4px;
+  line-height: 0.9;
+  color: #00d4ff;
+  text-shadow: 0 0 30px rgba(0,212,255,0.4), 0 0 80px rgba(0,212,255,0.15);
+}
+.t-tech .t-sec {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(20px, 5vw, 40px);
+  font-weight: 400;
+  color: rgba(0,212,255,0.3);
+  vertical-align: super;
+  margin-left: 6px;
+}
+.t-tech .t-date {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(12px, 2.5vw, 20px);
+  color: rgba(0,212,255,0.25);
+  margin-top: 14px;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+}
+
+/* 主题4: 极简超细 — Outfit */
+.t-minimal { text-align: center; }
+.t-minimal .t-time {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(90px, 22vw, 200px);
+  font-weight: 100;
+  letter-spacing: 12px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255,255,255,0.9);
+  line-height: 0.95;
+}
+.t-minimal .t-line {
+  width: 50px; height: 1px;
+  background: rgba(255,255,255,0.12);
+  margin: 18px auto;
+}
+.t-minimal .t-date {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(13px, 2.8vw, 22px);
+  font-weight: 200;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 6px;
+  text-transform: uppercase;
+}
+
+/* 主题5: 终端 — JetBrains Mono */
+.t-term { text-align: center; }
+.t-term .t-time {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-size: clamp(70px, 16vw, 150px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.95;
+  color: #30d158;
+  text-shadow: 0 0 20px rgba(48,209,88,0.4), 0 0 60px rgba(48,209,88,0.15);
+  letter-spacing: 2px;
+}
+.t-term .t-cursor {
+  display: inline-block;
+  width: clamp(3px, 0.8vw, 6px);
+  height: clamp(40px, 10vw, 70px);
+  background: #30d158;
+  vertical-align: middle;
+  margin-left: 8px;
+  animation: blink-cursor 1s step-end infinite;
+}
+.t-term .t-date {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(12px, 2.5vw, 20px);
+  color: rgba(48,209,88,0.3);
+  margin-top: 16px;
+  letter-spacing: 2px;
+}
+.t-term .t-prompt { color: rgba(48,209,88,0.55); }
+
+/* 主题6: 霓虹双色 — Space Mono */
+.t-neon { text-align: center; }
+.t-neon .t-time {
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(80px, 18vw, 170px);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.95;
+}
+.t-neon .n-h {
+  color: #bf5af2;
+  text-shadow: 0 0 30px rgba(191,90,242,0.5), 0 0 80px rgba(191,90,242,0.2);
+}
+.t-neon .n-c { color: rgba(191,90,242,0.35); margin: 0 4px; }
+.t-neon .n-m {
+  color: #64d2ff;
+  text-shadow: 0 0 30px rgba(100,210,255,0.5), 0 0 80px rgba(100,210,255,0.2);
+}
+.t-neon .t-date {
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(12px, 2.5vw, 20px);
+  color: rgba(191,90,242,0.3);
+  margin-top: 16px;
+  letter-spacing: 3px;
+}
+
+/* 主题7: 翻页 — Bebas Neue */
+.t-flip { text-align: center; }
+.f-row { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.f-grp { display: flex; gap: 6px; }
+.f-card {
+  position: relative;
+  width: clamp(55px, 11vw, 100px);
+  height: clamp(75px, 15vw, 130px);
+  background: linear-gradient(180deg, #1c1c1e 0%, #1a1a1c 49.5%, #111 49.5%, #111 50.5%, #2a2a2c 50.5%, #2a2a2c 100%);
+  border-radius: clamp(10px, 2.5vw, 18px);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(44px, 10vw, 85px);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  letter-spacing: 2px;
+}
+.f-colon {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(36px, 8vw, 64px);
+  color: rgba(255,255,255,0.2);
+}
+.t-flip .t-date {
+  font-family: 'DM Sans', sans-serif;
+  margin-top: 20px;
+  font-size: clamp(14px, 3vw, 22px);
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 3px;
+}
+
+/* 主题8: 渐变 — Outfit */
+.t-gradient { text-align: center; }
+.t-gradient .t-time {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(90px, 22vw, 200px);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+  background: linear-gradient(135deg, #ff6b6b, #ffa502, #ff6b6b, #ee5a24);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: grad-shift 6s ease infinite;
+  letter-spacing: -4px;
+}
+.t-gradient .t-date {
+  font-family: 'DM Sans', sans-serif;
+  font-size: clamp(14px, 3vw, 22px);
+  color: rgba(255,255,255,0.18);
+  margin-top: 14px;
+  letter-spacing: 3px;
+}
+
+/* ===== 闹钟面板 — 全新设计 ===== */
+
+/* 闹钟 — 设定模式（默认无闹钟时） */
+.alarm-setup {
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: opacity 0.3s;
+}
+.alarm-setup.hidden { display: none; }
+
+.alarm-setup-header {
+  padding: 16px 20px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.alarm-setup-header .alarm-icon { font-size: 18px; }
+.alarm-setup-header .alarm-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: -0.3px;
+}
+
+.alarm-setup-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 快捷按钮 — 垂直列表 */
+.quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.quick-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.quick-item:active {
+  background: rgba(255,159,10,0.1);
+  border-color: rgba(255,159,10,0.2);
+  transform: scale(0.98);
+}
+.quick-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.quick-item-emoji { font-size: 20px; }
+.quick-item-info { display: flex; flex-direction: column; gap: 1px; }
+.quick-item-time {
+  font-family: 'Inter', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+.quick-item-desc {
+  font-size: 11px;
+  color: rgba(255,255,255,0.3);
+  font-family: 'DM Sans', sans-serif;
+}
+.quick-item-arrow {
+  font-size: 14px;
+  color: rgba(255,255,255,0.15);
+}
+
+/* 分割线 */
+.alarm-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+.alarm-divider-line {
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+}
+.alarm-divider-text {
+  font-size: 11px;
+  color: rgba(255,255,255,0.2);
+  font-family: 'DM Sans', sans-serif;
+  white-space: nowrap;
+}
+
+/* 自定义时间 */
+.custom-alarm {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 14px;
+  padding: 14px;
+}
+.custom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.custom-input {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 12px;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.custom-input::placeholder { color: rgba(255,255,255,0.15); }
+.custom-input:focus { border-color: rgba(255,159,10,0.4); }
+.custom-unit {
+  font-size: 14px;
+  color: rgba(255,255,255,0.3);
+  white-space: nowrap;
+  font-family: 'DM Sans', sans-serif;
+}
+.custom-set-btn {
+  margin-top: 10px;
+  width: 100%;
+  background: linear-gradient(135deg, #ff9f0a, #ff6723);
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  color: #000;
+  font-family: 'Outfit', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.custom-set-btn:active { transform: scale(0.97); }
+
+/* 闹钟 — 倒计时模式（设置闹钟后） */
+.alarm-active {
+  width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  transition: opacity 0.3s;
+}
+.alarm-active.hidden { display: none; }
+
+.alarm-active-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+  animation: alarm-pulse 2s ease-in-out infinite;
+}
+@keyframes alarm-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.alarm-active-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+.alarm-active-target {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ff9f0a;
+  margin-bottom: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 大号倒计时 */
+.alarm-countdown {
+  font-family: 'Outfit', sans-serif;
+  font-size: clamp(48px, 12vw, 72px);
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -2px;
+  line-height: 1;
+  margin-bottom: 6px;
+  text-shadow: 0 0 40px rgba(255,159,10,0.15);
+}
+.alarm-countdown-unit {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+  margin-bottom: 24px;
+  letter-spacing: 1px;
+}
+
+/* 进度环 */
+.alarm-progress-ring {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+}
+.alarm-progress-ring svg {
+  width: 100%; height: 100%;
+}
+.alarm-progress-track {
+  fill: none;
+  stroke: rgba(255,255,255,0.03);
+  stroke-width: 3;
+}
+.alarm-progress-bar {
+  fill: none;
+  stroke: #ff9f0a;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear;
+  filter: drop-shadow(0 0 6px rgba(255,159,10,0.3));
+}
+
+.alarm-cancel-btn {
+  background: rgba(255,59,48,0.1);
+  border: 1px solid rgba(255,59,48,0.15);
+  border-radius: 100px;
+  padding: 10px 32px;
+  color: #ff453a;
+  font-family: 'Outfit', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 2;
+}
+.alarm-cancel-btn:active {
+  background: rgba(255,59,48,0.2);
+  transform: scale(0.96);
+}
+
+/* ===== 设置面板 ===== */
+#settings {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92);
+  -webkit-backdrop-filter: blur(50px);
+  backdrop-filter: blur(50px);
+  z-index: 200;
+  display: flex; flex-direction: column;
+  padding: max(50px, env(safe-area-inset-top, 50px) + 10px) 24px 40px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateY(100%);
+  transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+}
+#settings.open { transform: translateY(0); }
+
+.s-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px;
+}
+.s-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.s-close {
+  background: rgba(255,255,255,0.1);
+  border: none; border-radius: 50%;
+  width: 32px; height: 32px;
+  color: #fff; font-size: 15px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.s-group { margin-bottom: 18px; }
+.s-group-label {
+  font-size: 11px; font-weight: 600;
+  color: rgba(255,255,255,0.3);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+  padding-left: 4px;
+  font-family: 'DM Sans', sans-serif;
+}
+.s-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.05);
+  margin-bottom: 1px;
+}
+.s-row:first-of-type { border-radius: 12px 12px 2px 2px; }
+.s-row:last-of-type { border-radius: 2px 2px 12px 12px; margin-bottom: 0; }
+.s-row:only-of-type { border-radius: 12px; }
+.s-row-label { font-size: 15px; font-weight: 500; font-family: 'Inter', sans-serif; }
+.s-row-desc { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 2px; }
+
+/* iOS 开关 */
+.sw {
+  position: relative;
+  width: 51px; height: 31px;
+  background: #39393d;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+.sw.on { background: #30d158; }
+.sw::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 27px; height: 27px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+.sw.on::after { transform: translateX(20px); }
+
+/* ===== 强制横屏 ===== */
+@media screen and (orientation: portrait) {
+  html {
+    transform: rotate(90deg);
+    transform-origin: top left;
+    width: 100vh; height: 100vw;
+    overflow: hidden;
+    position: absolute;
+    top: 0; left: 100vw;
+  }
+}
+
+/* 右侧面板响应式 */
+@media screen and (max-height: 500px) {
+  .right-panel { width: 240px; }
+  .alarm-countdown { font-size: clamp(40px, 10vw, 56px); }
+  .quick-item { padding: 10px 12px; }
+}
+
+/* ===== 调暗遮罩 ===== */
+#dim-overlay {
+  position: fixed; inset: 0;
+  background: #000; opacity: 0;
+  z-index: 100;
+  pointer-events: none;
+  transition: opacity 2s ease;
+}
+#dim-overlay.dimmed { opacity: 0.9; }
+
+/* ===== 隐藏视频 ===== */
+#face-video {
+  position: fixed;
+  top: -9999px; left: -9999px;
+  width: 1px; height: 1px; opacity: 0;
+}
+
+/* ===== 夜间红色模式 ===== */
+body.night-mode { filter: saturate(0) brightness(0.6); }
+body.night-mode #app { filter: sepia(1) hue-rotate(-30deg) saturate(3) brightness(0.5); }
+
+/* ===== 低电量模式 ===== */
+body.low-power * {
+  animation-duration: 0s !important;
+  transition-duration: 0.1s !important;
+}
+
+/* ===== 动画 ===== */
+@keyframes blink {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+}
+@keyframes grad-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ===== 闹钟响铃弹窗 ===== */
+.alarm-modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.alarm-modal-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.alarm-modal {
+  text-align: center;
+  padding: 40px;
+  animation: modal-in 0.4s cubic-bezier(0.32,0.72,0,1);
+}
+@keyframes modal-in {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.alarm-modal-bell {
+  font-size: 72px;
+  animation: bell-ring 0.4s ease-in-out infinite alternate;
+  margin-bottom: 16px;
+}
+@keyframes bell-ring {
+  0% { transform: rotate(-20deg); }
+  100% { transform: rotate(20deg); }
+}
+.alarm-modal-time {
+  font-family: 'Outfit', sans-serif;
+  font-size: 56px;
+  font-weight: 800;
+  color: #ff9f0a;
+  margin-bottom: 6px;
+}
+.alarm-modal-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 32px;
+}
+.alarm-modal-dismiss {
+  background: linear-gradient(135deg, #ff9f0a, #ff6723);
+  border: none;
+  border-radius: 100px;
+  padding: 16px 56px;
+  color: #000;
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.alarm-modal-dismiss:active { transform: scale(0.96); }
+
+/* 设定成功动画 */
+.set-success-flash {
+  animation: flash-green 0.5s ease;
+}
+@keyframes flash-green {
+  0% { background: rgba(48,209,88,0.15); }
+  100% { background: rgba(255,255,255,0.04); }
+}
+</style>
+</head>
+<body>
+
+<!-- 引导页 -->
+<div id="guide-overlay">
+  <div class="guide-inner">
+    <div class="guide-emoji">🕐</div>
+    <div class="guide-title">StandBy</div>
+    <div class="guide-sub">横放 iPhone，变身智能时钟 + 闹钟</div>
+    <button class="guide-start" id="start-btn">开始体验</button>
+    <div class="guide-tips">
+      <div class="guide-tip">
+        <div class="guide-tip-icon">↕️</div>
+        <div class="guide-tip-text">上下滑动<br>切换主题</div>
+      </div>
+      <div class="guide-tip">
+        <div class="guide-tip-icon">⏰</div>
+        <div class="guide-tip-text">右侧闹钟<br>快捷设定</div>
+      </div>
+      <div class="guide-tip">
+        <div class="guide-tip-icon">👁️</div>
+        <div class="guide-tip-text">注视感知<br>自动亮屏</div>
+      </div>
+    </div>
+    <div class="pwa-hint" id="pwa-hint">
+      💡 获得<b>全屏体验</b>：点击 Safari 底部 <b>分享 ⬆</b> → <b>添加到主屏幕</b>
+    </div>
+  </div>
+</div>
+
+<!-- 主应用 -->
+<div id="app">
+  <!-- 顶部栏 -->
+  <div class="top-bar" id="top-bar">
+    <button class="btn-gear" id="btn-gear">⚙</button>
+    <div class="eye-badge" id="eye-badge">
+      <span class="eye-pip"></span>
+      <span id="eye-label">👁️</span>
+    </div>
+  </div>
+
+  <!-- 主布局 -->
+  <div class="main-layout">
+    <!-- 左侧：时钟+日期 -->
+    <div class="left-panel">
+      <div class="dots-v" id="dots-v"></div>
+      <div class="theme-stack" id="theme-stack">
+        <!-- 主题1: 经典粗体 -->
+        <div class="theme-item active" data-theme="0">
+          <div class="t-classic">
+            <div class="t-time" id="c-classic">00<span class="t-colon">:</span>00<span class="t-sec">00</span></div>
+            <div class="t-date" id="d-classic">星期六 · 3月14日</div>
+          </div>
+        </div>
+        <!-- 主题2: 优雅衬线 -->
+        <div class="theme-item" data-theme="1">
+          <div class="t-serif">
+            <div class="t-time" id="c-serif">00:00</div>
+            <div class="t-date" id="d-serif">星期六 · 3月14日</div>
+          </div>
+        </div>
+        <!-- 主题3: 科技感 -->
+        <div class="theme-item" data-theme="2">
+          <div class="t-tech">
+            <div class="t-time"><span id="c-tech">00:00</span><span class="t-sec" id="s-tech">00</span></div>
+            <div class="t-date" id="d-tech">星期六 · 3月14日</div>
+          </div>
+        </div>
+        <!-- 主题4: 极简超细 -->
+        <div class="theme-item" data-theme="3">
+          <div class="t-minimal">
+            <div class="t-time" id="c-minimal">00:00</div>
+            <div class="t-line"></div>
+            <div class="t-date" id="d-minimal">星期六 · 3月14日</div>
+          </div>
+        </div>
+        <!-- 主题5: 终端 -->
+        <div class="theme-item" data-theme="4">
+          <div class="t-term">
+            <div class="t-time"><span class="t-prompt">$</span> <span id="c-term">00:00:00</span><span class="t-cursor"></span></div>
+            <div class="t-date" id="d-term">// 星期六 3月14日</div>
+          </div>
+        </div>
+        <!-- 主题6: 霓虹双色 -->
+        <div class="theme-item" data-theme="5">
+          <div class="t-neon">
+            <div class="t-time"><span class="n-h" id="c-neon-h">00</span><span class="n-c">:</span><span class="n-m" id="c-neon-m">00</span></div>
+            <div class="t-date" id="d-neon">星期六 · 3月14日</div>
+          </div>
+        </div>
+        <!-- 主题7: 翻页 -->
+        <div class="theme-item" data-theme="6">
+          <div class="t-flip">
+            <div class="f-row">
+              <div class="f-grp">
+                <div class="f-card" id="f-h1">0</div>
+                <div class="f-card" id="f-h2">0</div>
+              </div>
+              <div class="f-colon">:</div>
+              <div class="f-grp">
+                <div class="f-card" id="f-m1">0</div>
+                <div class="f-card" id="f-m2">0</div>
+              </div>
+            </div>
+            <div class="t-date" id="d-flip">星期六 · 3月14日</div>
+          </div>
+        </div>
+        <!-- 主题8: 渐变 -->
+        <div class="theme-item" data-theme="7">
+          <div class="t-gradient">
+            <div class="t-time" id="c-gradient">00:00</div>
+            <div class="t-date" id="d-gradient">星期六 · 3月14日</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧：闹钟 -->
+    <div class="right-panel">
+      <!-- 模式A: 设定闹钟（默认） -->
+      <div class="alarm-setup" id="alarm-setup">
+        <div class="alarm-setup-header">
+          <span class="alarm-icon">⏰</span>
+          <span class="alarm-title">闹钟</span>
+        </div>
+        <div class="alarm-setup-body">
+          <div class="quick-list">
+            <div class="quick-item" onclick="setAlarm(5)">
+              <div class="quick-item-left">
+                <span class="quick-item-emoji">⚡</span>
+                <div class="quick-item-info">
+                  <span class="quick-item-time">5 分钟</span>
+                  <span class="quick-item-desc">快速小憩</span>
+                </div>
+              </div>
+              <span class="quick-item-arrow">›</span>
+            </div>
+            <div class="quick-item" onclick="setAlarm(10)">
+              <div class="quick-item-left">
+                <span class="quick-item-emoji">☕</span>
+                <div class="quick-item-info">
+                  <span class="quick-item-time">10 分钟</span>
+                  <span class="quick-item-desc">短暂休息</span>
+                </div>
+              </div>
+              <span class="quick-item-arrow">›</span>
+            </div>
+            <div class="quick-item" onclick="setAlarm(30)">
+              <div class="quick-item-left">
+                <span class="quick-item-emoji">😴</span>
+                <div class="quick-item-info">
+                  <span class="quick-item-time">30 分钟</span>
+                  <span class="quick-item-desc">午休小睡</span>
+                </div>
+              </div>
+              <span class="quick-item-arrow">›</span>
+            </div>
+            <div class="quick-item" onclick="setAlarm(60)">
+              <div class="quick-item-left">
+                <span class="quick-item-emoji">🛏️</span>
+                <div class="quick-item-info">
+                  <span class="quick-item-time">60 分钟</span>
+                  <span class="quick-item-desc">深度休息</span>
+                </div>
+              </div>
+              <span class="quick-item-arrow">›</span>
+            </div>
+          </div>
+
+          <div class="alarm-divider">
+            <div class="alarm-divider-line"></div>
+            <span class="alarm-divider-text">自定义</span>
+            <div class="alarm-divider-line"></div>
+          </div>
+
+          <div class="custom-alarm">
+            <div class="custom-row">
+              <input type="number" class="custom-input" id="custom-min" placeholder="输入分钟" min="1" max="999" value="">
+              <span class="custom-unit">分钟</span>
+            </div>
+            <button class="custom-set-btn" onclick="setCustomAlarm()">设定闹钟</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 模式B: 闹钟倒计时（设置闹钟后） -->
+      <div class="alarm-active hidden" id="alarm-active">
+        <!-- 进度环背景 -->
+        <div class="alarm-progress-ring">
+          <svg viewBox="0 0 300 300" id="progress-svg">
+            <circle class="alarm-progress-track" cx="150" cy="150" r="140"></circle>
+            <circle class="alarm-progress-bar" cx="150" cy="150" r="140" id="progress-bar"
+              stroke-dasharray="879.6" stroke-dashoffset="0"
+              transform="rotate(-90 150 150)"></circle>
+          </svg>
+        </div>
+        <div class="alarm-active-icon">⏰</div>
+        <div class="alarm-active-label">响铃时间</div>
+        <div class="alarm-active-target" id="alarm-target-time">00:00</div>
+        <div class="alarm-countdown" id="alarm-countdown">00:00</div>
+        <div class="alarm-countdown-unit" id="alarm-countdown-unit">分 : 秒</div>
+        <button class="alarm-cancel-btn" onclick="cancelAlarm()">取消闹钟</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 调暗遮罩 -->
+<div id="dim-overlay"></div>
+
+<!-- 设置面板 -->
+<div id="settings">
+  <div class="s-head">
+    <span class="s-title">设置</span>
+    <button class="s-close" id="btn-close-s">✕</button>
+  </div>
+
+  <div class="s-group">
+    <div class="s-group-label">👁️ 注视感知</div>
+    <div class="s-row">
+      <div>
+        <div class="s-row-label">人眼注视感知</div>
+        <div class="s-row-desc">看一眼亮屏5分钟，到期后无注视自动息屏</div>
+      </div>
+      <div class="sw on" id="sw-attn" onclick="toggleAttention()"></div>
+    </div>
+  </div>
+
+  <div class="s-group">
+    <div class="s-group-label">🌙 显示</div>
+    <div class="s-row">
+      <div>
+        <div class="s-row-label">红色夜间模式</div>
+        <div class="s-row-desc">降低蓝光，护眼显示</div>
+      </div>
+      <div class="sw" id="sw-night" onclick="toggleNight()"></div>
+    </div>
+  </div>
+
+  <div class="s-group">
+    <div class="s-group-label">⚡ 省电</div>
+    <div class="s-row">
+      <div>
+        <div class="s-row-label">低电量模式</div>
+        <div class="s-row-desc">关闭动画，降低刷新频率</div>
+      </div>
+      <div class="sw" id="sw-lp" onclick="toggleLowPower()"></div>
+    </div>
+  </div>
+
+  <div class="s-group">
+    <div class="s-group-label">ℹ️ 提示</div>
+    <div class="s-row" style="border-radius:12px; flex-direction:column; align-items:flex-start; gap:4px;">
+      <div class="s-row-desc" style="line-height:2; font-size:13px;">
+        <b style="color:#fff">↕️ 上下滑动</b> — 切换时钟主题（8款字体）<br>
+        <b style="color:#fff">⏰ 右侧闹钟</b> — 快捷 / 自定义倒计时<br>
+        <b style="color:#fff">👁️ 注视感知</b> — 自动检测人脸亮/息屏<br>
+        <b style="color:#fff">📱 全屏模式</b> — 添加到主屏幕获得最佳体验
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 闹钟响铃弹窗 -->
+<div class="alarm-modal-overlay" id="alarm-modal">
+  <div class="alarm-modal">
+    <div class="alarm-modal-bell">🔔</div>
+    <div class="alarm-modal-time" id="alarm-modal-time">00:00</div>
+    <div class="alarm-modal-label" id="alarm-modal-label">闹钟时间到！</div>
+    <button class="alarm-modal-dismiss" onclick="dismissAlarmModal()">停止闹钟</button>
+  </div>
+</div>
+
+<!-- 隐藏视频 -->
+<video id="face-video" autoplay playsinline></video>
+
+<script>
+// ============================================
+// 状态
+// ============================================
+const THEMES_COUNT = 8;
+let curTheme = parseInt(localStorage.getItem('standby-theme') || '0');
+if (curTheme >= THEMES_COUNT) curTheme = 0;
+
+let attentionEnabled = localStorage.getItem('standby-attention') !== 'false';
+let nightMode = localStorage.getItem('standby-night') === 'true';
+let lowPowerMode = localStorage.getItem('standby-lowpower') === 'true';
+
+let isUserLooking = false;
+let dimTimer = null;
+const DIM_DELAY = 6000;
+const GAZE_BRIGHT_DURATION = 5 * 60 * 1000;
+let gazeBrightTimer = null;
+let gazeDetectPaused = false;
+
+let faceDetector = null;
+let videoStream = null;
+let faceDetectInterval = null;
+
+let lastH = '', lastM = '', lastS = '';
+let clockTimer = null;
+let uiHideTimer = null;
+
+// 闹钟（最多一个）
+let activeAlarm = null; // { targetTime, minutes, timer }
+let alarmCountdownTimer = null;
+let alarmAudioCtx = null;
+let ringing = false;
+
+// ============================================
+// Safari / PWA 检测
+// ============================================
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+
+// ============================================
+// 进度环常量
+// ============================================
+const RING_CIRCUMFERENCE = 2 * Math.PI * 140; // ≈ 879.6
+
+// ============================================
+// 初始化
+// ============================================
+document.addEventListener('DOMContentLoaded', () => {
+  // 恢复设置
+  if (!attentionEnabled) document.getElementById('sw-attn').classList.remove('on');
+  if (nightMode) {
+    document.getElementById('sw-night').classList.add('on');
+    document.body.classList.add('night-mode');
+  }
+  if (lowPowerMode) {
+    document.getElementById('sw-lp').classList.add('on');
+    document.body.classList.add('low-power');
+  }
+
+  if (isIOS && isSafari && !isStandalone) {
+    document.getElementById('pwa-hint').classList.add('show');
+  }
+
+  if (isStandalone) skipGuide();
+
+  // 初始化
+  initDots();
+  syncThemeUI();
+  updateAllClocks();
+  startClockTimer();
+
+  // 按钮
+  document.getElementById('start-btn').addEventListener('click', launchApp);
+  document.getElementById('btn-gear').addEventListener('click', () => {
+    document.getElementById('settings').classList.add('open');
+  });
+  document.getElementById('btn-close-s').addEventListener('click', () => {
+    document.getElementById('settings').classList.remove('open');
+  });
+
+  document.getElementById('settings').addEventListener('touchmove', e => e.stopPropagation(), { passive: true });
+
+  // 自定义输入回车
+  document.getElementById('custom-min').addEventListener('keydown', e => {
+    if (e.key === 'Enter') setCustomAlarm();
+  });
+
+  setupSwipe();
+  scheduleUIFade();
+
+  document.addEventListener('touchmove', e => {
+    if (e.target.closest('#settings') || e.target.closest('.alarm-setup-body')) return;
+    e.preventDefault();
+  }, { passive: false });
+});
+
+// ============================================
+// 主题指示器
+// ============================================
+function initDots() {
+  const container = document.getElementById('dots-v');
+  container.innerHTML = '';
+  for (let i = 0; i < THEMES_COUNT; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot-v' + (i === curTheme ? ' on' : '');
+    container.appendChild(dot);
+  }
+}
+
+// ============================================
+// 引导 → 启动
+// ============================================
+async function launchApp() {
+  await tryFullscreen();
+  await requestWakeLock();
+
+  const g = document.getElementById('guide-overlay');
+  g.classList.add('hiding');
+  setTimeout(() => g.classList.add('gone'), 600);
+
+  if (attentionEnabled) startFaceDetection();
+}
+
+function skipGuide() {
+  document.getElementById('guide-overlay').classList.add('gone');
+  requestWakeLock();
+  if (attentionEnabled) setTimeout(() => startFaceDetection(), 500);
+}
+
+// ============================================
+// 全屏
+// ============================================
+async function tryFullscreen() {
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) await el.requestFullscreen().catch(() => {});
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  } catch(e) {}
+
+  if (isIOS && !isStandalone) {
+    setTimeout(() => window.scrollTo(0, 1), 300);
+  }
+}
+
+// ============================================
+// 屏幕常亮
+// ============================================
+let wakeLock = null;
+let noSleepVideo = null;
+
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      return;
+    }
+  } catch(e) {}
+  enableNoSleep();
+}
+
+function enableNoSleep() {
+  if (noSleepVideo) return;
+  try {
+    noSleepVideo = document.createElement('video');
+    noSleepVideo.setAttribute('playsinline', '');
+    noSleepVideo.setAttribute('webkit-playsinline', '');
+    noSleepVideo.setAttribute('loop', '');
+    noSleepVideo.setAttribute('muted', '');
+    noSleepVideo.muted = true;
+    noSleepVideo.style.cssText = 'position:fixed;top:-1px;left:-1px;width:1px;height:1px;opacity:0.01;';
+    noSleepVideo.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAFUWWIhAA3//728P4FNjuY0EcuAAVMAAAAB0AAAAN2n5gAAALDgAAAAMJYBAAFaagATEAAAAGBHhAAJoAAABgil0AAAO0IAABRgA+gAAAASkaQAADaAAAABjihAALmAAABa0AAALQAAAA1MBIAAAAEU/AAAM8YAA0RAAAAJQAAAAF1AAAAMKYAABNgAAADdAAAAG8AAAB7EAAAIoAAANAAAAKgAABXQAAAGoAAAAVYAAAC5gAAAGcAAAAhYAAAAvgAAAAfAAAADIAAAAIcAAAA6AAAACPAAAAA1AAAACB0AAAANUAAABegAAACrgAAAA/AAAAM0AAAAsYAAAAhwAAADLAAAALGAAAAIcAAABWAAAAYgAAABDAAAAO+AAAAUoAAAE+AAAAAEsAAAAKmAAAChAAAAA+AAAAi4AAAAPYAAAOcAAAC1gAAAAPQAAAAhQ=';
+    document.body.appendChild(noSleepVideo);
+    const p = noSleepVideo.play();
+    if (p) p.catch(() => {});
+  } catch(e) {}
+}
+
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible') {
+    if (!wakeLock && !noSleepVideo) await requestWakeLock();
+    updateAllClocks();
+    startClockTimer();
+  } else {
+    if (clockTimer) { clearInterval(clockTimer); clockTimer = null; }
+  }
+});
+
+// ============================================
+// UI 自动隐藏
+// ============================================
+function scheduleUIFade() {
+  clearTimeout(uiHideTimer);
+  document.getElementById('top-bar').classList.remove('fade');
+  uiHideTimer = setTimeout(() => document.getElementById('top-bar').classList.add('fade'), 5000);
+}
+
+document.addEventListener('touchstart', () => {
+  scheduleUIFade();
+  if (attentionEnabled) {
+    undim();
+    if (gazeDetectPaused) {
+      startGazeBrightPeriod();
+    } else {
+      startDimTimer();
+    }
+  }
+}, { passive: true });
+
+// ============================================
+// 时钟刷新
+// ============================================
+function startClockTimer() {
+  if (clockTimer) clearInterval(clockTimer);
+  const interval = getInterval();
+  clockTimer = setInterval(updateAllClocks, interval);
+}
+function getInterval() {
+  if (lowPowerMode) return 10000;
+  if ([0, 2, 4].includes(curTheme)) return 1000;
+  return 5000;
+}
+
+// ============================================
+// 时钟更新
+// ============================================
+function updateAllClocks() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+
+  const WD = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+  const wd = WD[now.getDay()];
+  const day = now.getDate();
+  const ds = `${now.getMonth()+1}月${day}日`;
+
+  const mChanged = (h !== lastH || m !== lastM);
+  const sChanged = (s !== lastS);
+
+  if (mChanged || sChanged) {
+    // 经典
+    document.getElementById('c-classic').innerHTML = `${h}<span class="t-colon">:</span>${m}<span class="t-sec">${s}</span>`;
+    document.getElementById('d-classic').textContent = `${wd} · ${ds}`;
+
+    // 衬线
+    document.getElementById('c-serif').textContent = `${h}:${m}`;
+    document.getElementById('d-serif').textContent = `${wd} · ${ds}`;
+
+    // 科技
+    document.getElementById('c-tech').textContent = `${h}:${m}`;
+    document.getElementById('s-tech').textContent = s;
+    document.getElementById('d-tech').textContent = `${wd} · ${ds}`;
+
+    // 极简
+    document.getElementById('c-minimal').textContent = `${h}:${m}`;
+    document.getElementById('d-minimal').textContent = `${wd} · ${ds}`;
+
+    // 终端
+    document.getElementById('c-term').textContent = `${h}:${m}:${s}`;
+    document.getElementById('d-term').textContent = `// ${wd} ${ds}`;
+
+    // 霓虹
+    document.getElementById('c-neon-h').textContent = h;
+    document.getElementById('c-neon-m').textContent = m;
+    document.getElementById('d-neon').textContent = `${wd} · ${ds}`;
+
+    // 翻页
+    document.getElementById('f-h1').textContent = h[0];
+    document.getElementById('f-h2').textContent = h[1];
+    document.getElementById('f-m1').textContent = m[0];
+    document.getElementById('f-m2').textContent = m[1];
+    document.getElementById('d-flip').textContent = `${wd} · ${ds}`;
+
+    // 渐变
+    document.getElementById('c-gradient').textContent = `${h}:${m}`;
+    document.getElementById('d-gradient').textContent = `${wd} · ${ds}`;
+  }
+
+  lastH = h; lastM = m; lastS = s;
+}
+
+// ============================================
+// 滑动交互（上下切换主题）
+// ============================================
+function setupSwipe() {
+  let sx = 0, sy = 0, dragging = false;
+
+  document.addEventListener('touchstart', e => {
+    if (document.getElementById('settings').classList.contains('open')) return;
+    if (e.target.closest('#guide-overlay')) return;
+    if (e.target.closest('.alarm-setup-body')) return;
+    if (e.target.closest('.alarm-modal-overlay')) return;
+    if (e.target.closest('.right-panel')) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    dragging = true;
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (!dragging) return;
+    dragging = false;
+    if (document.getElementById('settings').classList.contains('open')) return;
+
+    const dy = e.changedTouches[0].clientY - sy;
+    const ay = Math.abs(dy);
+
+    if (ay < 50) return;
+
+    if (dy < 0 && curTheme < THEMES_COUNT - 1) {
+      curTheme++;
+      syncThemeUI();
+    } else if (dy > 0 && curTheme > 0) {
+      curTheme--;
+      syncThemeUI();
+    }
+  }, { passive: true });
+}
+
+function syncThemeUI() {
+  const items = document.querySelectorAll('.theme-item');
+  items.forEach((el, i) => {
+    el.classList.remove('active', 'exit-up');
+    if (i === curTheme) {
+      el.classList.add('active');
+    } else if (i < curTheme) {
+      el.classList.add('exit-up');
+    }
+  });
+
+  document.querySelectorAll('#dots-v .dot-v').forEach((d, i) => {
+    d.classList.toggle('on', i === curTheme);
+  });
+
+  localStorage.setItem('standby-theme', curTheme);
+  startClockTimer();
+}
+
+// ============================================
+// 闹钟功能（单个闹钟）
+// ============================================
+function setAlarm(minutes) {
+  // 如果已有闹钟，先取消
+  if (activeAlarm) {
+    clearTimeout(activeAlarm.timer);
+    activeAlarm = null;
+  }
+
+  const now = Date.now();
+  const targetTime = now + minutes * 60 * 1000;
+
+  activeAlarm = {
+    targetTime,
+    minutes,
+    totalMs: minutes * 60 * 1000,
+    timer: setTimeout(() => triggerAlarm(), targetTime - now)
+  };
+
+  // 切换到倒计时模式
+  showAlarmActive();
+  startAlarmCountdown();
+}
+
+function setCustomAlarm() {
+  const input = document.getElementById('custom-min');
+  const val = parseInt(input.value);
+  if (!val || val < 1) {
+    input.style.borderColor = 'rgba(255,59,48,0.5)';
+    setTimeout(() => { input.style.borderColor = ''; }, 1000);
+    return;
+  }
+  setAlarm(val);
+  input.value = '';
+  input.blur();
+}
+
+function cancelAlarm() {
+  if (activeAlarm) {
+    clearTimeout(activeAlarm.timer);
+    activeAlarm = null;
+  }
+  stopAlarmCountdown();
+  stopAlarmSound();
+  ringing = false;
+  showAlarmSetup();
+}
+
+function triggerAlarm() {
+  ringing = true;
+  playAlarmSound();
+  undim();
+
+  // 显示弹窗
+  const modal = document.getElementById('alarm-modal');
+  const now = new Date();
+  document.getElementById('alarm-modal-time').textContent =
+    String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('alarm-modal-label').textContent = `${activeAlarm ? activeAlarm.minutes : ''} 分钟闹钟到！`;
+  modal.classList.add('show');
+
+  // 60秒后自动停止
+  setTimeout(() => {
+    if (ringing) dismissAlarmModal();
+  }, 60000);
+}
+
+function dismissAlarmModal() {
+  document.getElementById('alarm-modal').classList.remove('show');
+  stopAlarmSound();
+  ringing = false;
+  if (activeAlarm) {
+    clearTimeout(activeAlarm.timer);
+    activeAlarm = null;
+  }
+  stopAlarmCountdown();
+  showAlarmSetup();
+}
+
+function showAlarmSetup() {
+  document.getElementById('alarm-setup').classList.remove('hidden');
+  document.getElementById('alarm-active').classList.add('hidden');
+}
+
+function showAlarmActive() {
+  document.getElementById('alarm-setup').classList.add('hidden');
+  document.getElementById('alarm-active').classList.remove('hidden');
+
+  // 闪烁效果表示设置成功
+  const panel = document.querySelector('.right-panel');
+  panel.classList.add('set-success-flash');
+  setTimeout(() => panel.classList.remove('set-success-flash'), 500);
+
+  // 设置目标时间文字
+  if (activeAlarm) {
+    const target = new Date(activeAlarm.targetTime);
+    document.getElementById('alarm-target-time').textContent =
+      String(target.getHours()).padStart(2,'0') + ':' + String(target.getMinutes()).padStart(2,'0');
+  }
+}
+
+function startAlarmCountdown() {
+  stopAlarmCountdown();
+  updateAlarmCountdown(); // 立即更新
+  alarmCountdownTimer = setInterval(updateAlarmCountdown, 1000);
+}
+
+function stopAlarmCountdown() {
+  if (alarmCountdownTimer) {
+    clearInterval(alarmCountdownTimer);
+    alarmCountdownTimer = null;
+  }
+}
+
+function updateAlarmCountdown() {
+  if (!activeAlarm) return;
+
+  const now = Date.now();
+  const remain = Math.max(0, activeAlarm.targetTime - now);
+  const totalSec = Math.ceil(remain / 1000);
+  const minutes = Math.floor(totalSec / 60);
+  const seconds = totalSec % 60;
+
+  // 大号倒计时
+  const countdown = document.getElementById('alarm-countdown');
+  const unitLabel = document.getElementById('alarm-countdown-unit');
+
+  if (minutes >= 60) {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    countdown.textContent = `${hours}:${String(mins).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+    unitLabel.textContent = '时 : 分 : 秒';
+  } else {
+    countdown.textContent = `${String(minutes).padStart(2,'0')}:${String(seconds).padStart(2,'0')}`;
+    unitLabel.textContent = '分 : 秒';
+  }
+
+  // 进度环
+  const progress = 1 - (remain / activeAlarm.totalMs);
+  const offset = RING_CIRCUMFERENCE * (1 - progress);
+  document.getElementById('progress-bar').setAttribute('stroke-dashoffset', offset);
+}
+
+// ============================================
+// 闹钟音效
+// ============================================
+function playAlarmSound() {
+  try {
+    alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    playBeepSequence();
+  } catch(e) {}
+}
+
+function playBeepSequence() {
+  if (!alarmAudioCtx || !ringing) return;
+
+  const freqs = [880, 0, 880, 0, 880, 0, 1100, 0];
+  const dur = 0.15;
+  let t = alarmAudioCtx.currentTime;
+
+  freqs.forEach(f => {
+    if (f > 0) {
+      const osc = alarmAudioCtx.createOscillator();
+      const gain = alarmAudioCtx.createGain();
+      osc.frequency.value = f;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
+      osc.connect(gain);
+      gain.connect(alarmAudioCtx.destination);
+      osc.start(t);
+      osc.stop(t + dur);
+    }
+    t += dur + 0.05;
+  });
+
+  setTimeout(() => playBeepSequence(), 2000);
+}
+
+function stopAlarmSound() {
+  if (alarmAudioCtx) {
+    try { alarmAudioCtx.close(); } catch(e) {}
+    alarmAudioCtx = null;
+  }
+}
+
+// ============================================
+// 注视感知
+// ============================================
+function toggleAttention() {
+  attentionEnabled = !attentionEnabled;
+  localStorage.setItem('standby-attention', attentionEnabled);
+  document.getElementById('sw-attn').classList.toggle('on', attentionEnabled);
+  if (attentionEnabled) startFaceDetection();
+  else stopFaceDetection();
+}
+
+async function startFaceDetection() {
+  try {
+    if (typeof FaceDetector !== 'undefined') {
+      faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      const vid = document.getElementById('face-video');
+      videoStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: 320, height: 240 }
+      });
+      vid.srcObject = videoStream;
+      await vid.play();
+
+      faceDetectInterval = setInterval(async () => {
+        try {
+          const faces = await faceDetector.detect(vid);
+          setLookingState(faces.length > 0);
+        } catch(e) {}
+      }, lowPowerMode ? 1500 : 500);
+
+      updateEyeUI();
+      startDimTimer();
+      return;
+    }
+  } catch(e) {}
+
+  await startSimpleDetect();
+}
+
+async function startSimpleDetect() {
+  try {
+    const vid = document.getElementById('face-video');
+    videoStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: 160, height: 120 }
+    });
+    vid.srcObject = videoStream;
+    await vid.play();
+
+    const cv = document.createElement('canvas');
+    cv.width = 160; cv.height = 120;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    let prev = null;
+
+    faceDetectInterval = setInterval(() => {
+      ctx.drawImage(vid, 0, 0, 160, 120);
+      const data = ctx.getImageData(0, 0, 160, 120).data;
+      if (prev) {
+        let diff = 0;
+        for (let i = 0; i < data.length; i += 160) diff += Math.abs(data[i] - prev[i]);
+        setLookingState(diff / (data.length / 160) > 3);
+      }
+      prev = new Uint8Array(data);
+    }, lowPowerMode ? 2000 : 800);
+
+    updateEyeUI();
+    startDimTimer();
+  } catch(e) {
+    document.getElementById('eye-label').textContent = '✕';
+  }
+}
+
+function setLookingState(looking) {
+  if (gazeDetectPaused) return;
+  if (looking === isUserLooking) return;
+  isUserLooking = looking;
+  updateEyeUI();
+  if (looking) {
+    clearDimTimer();
+    undim();
+    startGazeBrightPeriod();
+  } else {
+    startDimTimer();
+  }
+}
+
+function startGazeBrightPeriod() {
+  if (gazeBrightTimer) { clearTimeout(gazeBrightTimer); gazeBrightTimer = null; }
+  gazeDetectPaused = true;
+  pauseDetect();
+  document.getElementById('eye-label').textContent = '☀️';
+
+  gazeBrightTimer = setTimeout(() => {
+    gazeBrightTimer = null;
+    gazeDetectPaused = false;
+    isUserLooking = false;
+    resumeDetect();
+    document.getElementById('eye-label').textContent = '👁️';
+    startDimTimer();
+  }, GAZE_BRIGHT_DURATION);
+}
+
+function pauseDetect() {
+  if (faceDetectInterval) { clearInterval(faceDetectInterval); faceDetectInterval = null; }
+}
+
+function resumeDetect() {
+  if (!attentionEnabled || faceDetectInterval) return;
+  const vid = document.getElementById('face-video');
+  if (!vid || !videoStream) return;
+
+  if (faceDetector) {
+    faceDetectInterval = setInterval(async () => {
+      try {
+        const faces = await faceDetector.detect(vid);
+        setLookingState(faces.length > 0);
+      } catch(e) {}
+    }, lowPowerMode ? 1500 : 500);
+  } else {
+    const cv = document.createElement('canvas');
+    cv.width = 160; cv.height = 120;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    let prev = null;
+    faceDetectInterval = setInterval(() => {
+      ctx.drawImage(vid, 0, 0, 160, 120);
+      const data = ctx.getImageData(0, 0, 160, 120).data;
+      if (prev) {
+        let diff = 0;
+        for (let i = 0; i < data.length; i += 160) diff += Math.abs(data[i] - prev[i]);
+        setLookingState(diff / (data.length / 160) > 3);
+      }
+      prev = new Uint8Array(data);
+    }, lowPowerMode ? 2000 : 800);
+  }
+}
+
+function stopFaceDetection() {
+  if (faceDetectInterval) { clearInterval(faceDetectInterval); faceDetectInterval = null; }
+  if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+  if (gazeBrightTimer) { clearTimeout(gazeBrightTimer); gazeBrightTimer = null; }
+  faceDetector = null;
+  isUserLooking = false;
+  gazeDetectPaused = false;
+  clearDimTimer();
+  undim();
+  updateEyeUI();
+}
+
+function updateEyeUI() {
+  const badge = document.getElementById('eye-badge');
+  const label = document.getElementById('eye-label');
+  if (!attentionEnabled) {
+    badge.classList.remove('on');
+    label.textContent = '✕';
+    return;
+  }
+  if (gazeDetectPaused) {
+    badge.classList.add('on');
+    label.textContent = '☀️';
+    return;
+  }
+  badge.classList.toggle('on', isUserLooking);
+  label.textContent = '👁️';
+}
+
+// ============================================
+// 变暗/息屏
+// ============================================
+function startDimTimer() {
+  clearDimTimer();
+  dimTimer = setTimeout(() => {
+    document.getElementById('dim-overlay').classList.add('dimmed');
+  }, DIM_DELAY);
+}
+function clearDimTimer() {
+  if (dimTimer) { clearTimeout(dimTimer); dimTimer = null; }
+}
+function undim() {
+  document.getElementById('dim-overlay').classList.remove('dimmed');
+}
+
+// ============================================
+// 设置
+// ============================================
+function toggleNight() {
+  nightMode = !nightMode;
+  localStorage.setItem('standby-night', nightMode);
+  document.getElementById('sw-night').classList.toggle('on', nightMode);
+  document.body.classList.toggle('night-mode', nightMode);
+}
+
+function toggleLowPower() {
+  lowPowerMode = !lowPowerMode;
+  localStorage.setItem('standby-lowpower', lowPowerMode);
+  document.getElementById('sw-lp').classList.toggle('on', lowPowerMode);
+  document.body.classList.toggle('low-power', lowPowerMode);
+  startClockTimer();
+  if (attentionEnabled) { stopFaceDetection(); startFaceDetection(); }
+}
+
+// ============================================
+// 错误捕获
+// ============================================
+window.onerror = (msg, url, line) => console.error('Error:', msg, 'at line', line);
+</script>
+
+</body>
+</html>
