@@ -1,6 +1,7 @@
-# 只提交 web 目录
+# 只提交 web 目录和 README
 *
 !.gitignore
+!README.md
 !web/
 !web/**
 
