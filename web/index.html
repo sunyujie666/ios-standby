@@ -355,24 +355,32 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 }
 #dim.on{opacity:.9}
 
-/* === 息屏 === */
+/* === 摄像头定时器控件 === */
+.cam-timer-ctrl{
+  display:flex;align-items:center;gap:6px;flex-shrink:0;
+}
+.ct-btn{
+  width:30px;height:30px;border-radius:50%;border:none;
+  background:rgba(255,255,255,.12);color:#fff;font-size:18px;
+  font-weight:600;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;-webkit-tap-highlight-color:transparent;
+}
+.ct-btn:active{background:rgba(255,255,255,.25)}
+.ct-val{
+  min-width:36px;text-align:center;font-size:14px;font-weight:600;
+  color:#30d158;font-variant-numeric:tabular-nums;
+}
+.ct-val.off{color:rgba(255,255,255,.3)}
+.ct-countdown{color:#ff9f0a;font-size:11px;margin-top:2px}
+
+/* === 息屏（纯黑） === */
 #screenOff{
   position:fixed;inset:0;background:#000;
-  z-index:500;display:flex;align-items:center;justify-content:center;
+  z-index:500;
   opacity:0;pointer-events:none;
   transition:opacity 1.5s ease;
 }
 #screenOff.on{opacity:1;pointer-events:auto}
-.so-hint{
-  text-align:center;opacity:0;
-  animation:soFade 4s ease-in-out infinite;
-}
-.so-icon{font-size:36px;margin-bottom:8px}
-.so-text{font-size:13px;color:rgba(255,255,255,.15);letter-spacing:1px}
-@keyframes soFade{
-  0%,100%{opacity:0}
-  50%{opacity:1}
-}
 
 /* === 强制横屏 === */
 @media screen and (orientation:portrait){
@@ -500,13 +508,8 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
 <!-- 调暗遮罩 -->
 <div id="dim"></div>
 
-<!-- 息屏遮罩 -->
-<div id="screenOff">
-  <div class="so-hint">
-    <div class="so-icon">🌙</div>
-    <div class="so-text">轻触屏幕唤醒</div>
-  </div>
-</div>
+<!-- 息屏遮罩（纯黑） -->
+<div id="screenOff"></div>
 
 <!-- 设置 -->
 <div id="settings">
@@ -519,6 +522,17 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
     <div class="s-row">
       <div><div class="s-row-t">人眼注视感知</div><div class="s-row-d">看一眼亮屏5分钟，期间暂停检测省电</div></div>
       <div class="sw on" id="swAttn" onclick="tAttn()"></div>
+    </div>
+    <div class="s-row" id="camTimerRow" style="display:none">
+      <div style="flex:1">
+        <div class="s-row-t">定时关闭摄像头</div>
+        <div class="s-row-d" id="camTimerDesc">省电：到时自动关闭注视感知</div>
+      </div>
+      <div class="cam-timer-ctrl">
+        <button class="ct-btn" onclick="adjCamTimer(-1)">−</button>
+        <span class="ct-val" id="camTimerVal">关</span>
+        <button class="ct-btn" onclick="adjCamTimer(1)">+</button>
+      </div>
     </div>
     <div class="s-row">
       <div><div class="s-row-t">自动息屏</div><div class="s-row-d">5分钟无人脸则息屏省电</div></div>
@@ -569,6 +583,12 @@ let gazeEndAt=0; // 注视暂停结束时间戳
 const DIM_DELAY=6000,GAZE_DUR=300000;
 const SCREEN_OFF_DELAY=30000; // 测试：变暗后30秒息屏（正式环境改为300000）
 
+// 摄像头定时关闭
+let camTimerHrs=0;      // 用户设置的小时数（0=关闭）
+let camTimerEndAt=0;     // 定时结束时间戳
+let camTimerTm=null;     // setTimeout id
+const CAM_TIMER_OPTIONS=[0,1,2,3,4,6,8]; // 可选小时数
+
 // 检测频率（毫秒）——分场景降低频率省电
 const FACE_INTERVAL_NORMAL=2000;    // 正常状态：2秒一次（原500ms）
 const FACE_INTERVAL_LOWPOW=4000;    // 低电量：4秒一次
@@ -587,6 +607,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(lpOn){document.getElementById('swLP').classList.add('on');document.body.classList.add('lowpow')}
   if(!attnOn)document.getElementById('swAttn').classList.remove('on');
   if(!soOn)document.getElementById('swSO').classList.remove('on');
+  showCamTimerRow(attnOn);updateCamTimerUI();
   if(isSA)skipGuide();
   tick();startClock();
   document.getElementById('startBtn').onclick=launch;
@@ -902,8 +923,72 @@ function stopSound(){
 function tAttn(){
   attnOn=!attnOn;localStorage.setItem('sb-attn',attnOn);
   document.getElementById('swAttn').classList.toggle('on',attnOn);
-  if(attnOn)startFace();else stopFace();
+  if(attnOn){startFace();showCamTimerRow(true)}else{stopFace();showCamTimerRow(false);clearCamTimer()}
   updateStatus();
+}
+
+// ====== 摄像头定时关闭 ======
+function showCamTimerRow(show){
+  const row=document.getElementById('camTimerRow');
+  if(row) row.style.display=show?'flex':'none';
+}
+function adjCamTimer(dir){
+  const idx=CAM_TIMER_OPTIONS.indexOf(camTimerHrs);
+  let ni=idx+dir;
+  if(ni<0)ni=CAM_TIMER_OPTIONS.length-1;
+  if(ni>=CAM_TIMER_OPTIONS.length)ni=0;
+  camTimerHrs=CAM_TIMER_OPTIONS[ni];
+  updateCamTimerUI();
+  // 设置或清除定时
+  if(camTimerHrs>0){
+    setCamTimer(camTimerHrs);
+  }else{
+    clearCamTimer();
+  }
+}
+function setCamTimer(hrs){
+  clearCamTimer();
+  camTimerEndAt=Date.now()+hrs*3600000;
+  camTimerTm=setTimeout(()=>{
+    // 到时间了，自动关闭注视感知
+    camTimerTm=null;
+    camTimerHrs=0;camTimerEndAt=0;
+    if(attnOn){
+      attnOn=false;localStorage.setItem('sb-attn',false);
+      document.getElementById('swAttn').classList.remove('on');
+      stopFace();showCamTimerRow(false);
+      updateStatus();
+    }
+    updateCamTimerUI();
+    console.log('[CamTimer] 定时到期，已关闭摄像头');
+  },hrs*3600000);
+  console.log('[CamTimer] 设置'+hrs+'小时后关闭摄像头');
+}
+function clearCamTimer(){
+  if(camTimerTm){clearTimeout(camTimerTm);camTimerTm=null}
+  camTimerEndAt=0;camTimerHrs=0;
+  updateCamTimerUI();
+}
+function updateCamTimerUI(){
+  const valEl=document.getElementById('camTimerVal');
+  const descEl=document.getElementById('camTimerDesc');
+  if(!valEl)return;
+  if(camTimerHrs===0){
+    valEl.textContent='关';
+    valEl.classList.add('off');
+    descEl.textContent='省电：到时自动关闭注视感知';
+  }else{
+    valEl.textContent=camTimerHrs+'h';
+    valEl.classList.remove('off');
+    if(camTimerEndAt>0){
+      const endTime=new Date(camTimerEndAt);
+      const hh=String(endTime.getHours()).padStart(2,'0');
+      const mm=String(endTime.getMinutes()).padStart(2,'0');
+      descEl.innerHTML='将于 <span class="ct-countdown">'+hh+':'+mm+'</span> 自动关闭';
+    }else{
+      descEl.textContent=camTimerHrs+'小时后自动关闭注视感知';
+    }
+  }
 }
 function tNight(){
   nightOn=!nightOn;localStorage.setItem('sb-night',nightOn);
@@ -1203,6 +1288,13 @@ function updateStatus(){
       txt='📷 就绪';
     }else{
       txt='📷 待启动';
+    }
+    // 摄像头定时倒计时
+    if(camTimerEndAt>0){
+      const camLeft=Math.max(0,Math.ceil((camTimerEndAt-now)/60000));
+      if(camLeft>60) txt+=' · '+Math.floor(camLeft/60)+'h'+String(camLeft%60).padStart(2,'0')+'m后关';
+      else if(camLeft>0) txt+=' · '+camLeft+'m后关';
+      else txt+=' · 即将关闭';
     }
   }else{
     txt='📷 关闭';
