@@ -1,0 +1,11 @@
+# 只提交 web 目录
+*
+!.gitignore
+!web/
+!web/**
+
+# macOS
+.DS_Store
+
+# CodeBuddy
+.codebuddy/
