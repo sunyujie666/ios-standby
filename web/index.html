@@ -373,15 +373,6 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 .ct-val.off{color:rgba(255,255,255,.3)}
 .ct-countdown{color:#ff9f0a;font-size:11px;margin-top:2px}
 
-/* === 息屏（纯黑） === */
-#screenOff{
-  position:fixed;inset:0;background:#000;
-  z-index:500;
-  opacity:0;pointer-events:none;
-  transition:opacity 1.5s ease;
-}
-#screenOff.on{opacity:1;pointer-events:auto}
-
 /* === 强制横屏 === */
 @media screen and (orientation:portrait){
   html{
@@ -508,9 +499,6 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
 <!-- 调暗遮罩 -->
 <div id="dim"></div>
 
-<!-- 息屏遮罩（纯黑） -->
-<div id="screenOff"></div>
-
 <!-- 设置 -->
 <div id="settings">
   <div class="s-head">
@@ -525,18 +513,14 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
     </div>
     <div class="s-row" id="camTimerRow" style="display:none">
       <div style="flex:1">
-        <div class="s-row-t">定时关闭摄像头</div>
-        <div class="s-row-d" id="camTimerDesc">省电：到时自动关闭注视感知</div>
+        <div class="s-row-t">运行时长</div>
+        <div class="s-row-d" id="camTimerDesc">到时关闭摄像头，交由系统自动息屏</div>
       </div>
       <div class="cam-timer-ctrl">
         <button class="ct-btn" onclick="adjCamTimer(-1)">−</button>
-        <span class="ct-val" id="camTimerVal">关</span>
+        <span class="ct-val" id="camTimerVal">常驻</span>
         <button class="ct-btn" onclick="adjCamTimer(1)">+</button>
       </div>
-    </div>
-    <div class="s-row">
-      <div><div class="s-row-t">自动息屏</div><div class="s-row-d">5分钟无人脸则息屏省电</div></div>
-      <div class="sw on" id="swSO" onclick="tSO()"></div>
     </div>
   </div>
   <div class="s-grp">
@@ -574,28 +558,24 @@ let alarm=null, cdTimer=null, ringing=false;
 let attnOn=localStorage.getItem('sb-attn')!=='false';
 let nightOn=localStorage.getItem('sb-night')==='true';
 let lpOn=localStorage.getItem('sb-lp')==='true';
-let soOn=localStorage.getItem('sb-so')!=='false'; // 自动息屏默认开启
 let dimTm=null, clockTm=null, uiTm=null;
 let faceDetector=null,vidStream=null,faceInt=null;
 let isLooking=false,gazeTm=null,gazePaused=false;
 let screenOffTm=null, isScreenOff=false, lastFaceTime=Date.now();
 let gazeEndAt=0; // 注视暂停结束时间戳
 const DIM_DELAY=6000,GAZE_DUR=300000;
-const SCREEN_OFF_DELAY=30000; // 测试：变暗后30秒息屏（正式环境改为300000）
 
-// 摄像头定时关闭
-let camTimerHrs=0;      // 用户设置的小时数（0=关闭）
+// 摄像头定时关闭（0=常驻不自动关）
+let camTimerHrs=0;      // 用户设置的小时数
 let camTimerEndAt=0;     // 定时结束时间戳
 let camTimerTm=null;     // setTimeout id
-const CAM_TIMER_OPTIONS=[0,1,2,3,4,6,8]; // 可选小时数
+const CAM_TIMER_OPTIONS=[0,1,2,3,4,6,8]; // 可选小时数（0=常驻）
 
 // 检测频率（毫秒）——分场景降低频率省电
-const FACE_INTERVAL_NORMAL=2000;    // 正常状态：2秒一次（原500ms）
+const FACE_INTERVAL_NORMAL=2000;    // 正常状态：2秒一次
 const FACE_INTERVAL_LOWPOW=4000;    // 低电量：4秒一次
-const FACE_INTERVAL_SCREENOFF=3000; // 息屏状态：3秒一次
-const MOTION_INTERVAL_NORMAL=2000;  // 运动检测正常：2秒一次（原800ms）
+const MOTION_INTERVAL_NORMAL=2000;  // 运动检测正常：2秒一次
 const MOTION_INTERVAL_LOWPOW=4000;  // 运动检测低电量：4秒一次
-const MOTION_INTERVAL_SCREENOFF=3000;
 const CIRC=2*Math.PI*140;
 
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -606,7 +586,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(nightOn){document.getElementById('swNight').classList.add('on');document.body.classList.add('night')}
   if(lpOn){document.getElementById('swLP').classList.add('on');document.body.classList.add('lowpow')}
   if(!attnOn)document.getElementById('swAttn').classList.remove('on');
-  if(!soOn)document.getElementById('swSO').classList.remove('on');
   showCamTimerRow(attnOn);updateCamTimerUI();
   if(isSA)skipGuide();
   tick();startClock();
@@ -645,7 +624,6 @@ async function launch(){
   setTimeout(()=>g.classList.add('gone'),500);
   if(attnOn)startFace();
   startWeather();
-  // 无论是否开启注视感知，都启动变暗流程（soOn控制是否息屏）
   startDim();
   updateStatus();
 }
@@ -672,6 +650,11 @@ async function reqWake(){
     document.body.appendChild(noSleep);
     noSleep.play().catch(()=>{});
   }catch(e){}
+}
+function releaseWake(){
+  if(wakeLock){try{wakeLock.release()}catch(e){}wakeLock=null}
+  if(noSleep){try{noSleep.pause();noSleep.remove()}catch(e){}noSleep=null}
+  console.log('[Wake] 释放屏幕常亮，交由系统自动息屏');
 }
 document.addEventListener('visibilitychange',async()=>{
   if(document.visibilityState==='visible'){
@@ -939,7 +922,6 @@ function adjCamTimer(dir){
   if(ni>=CAM_TIMER_OPTIONS.length)ni=0;
   camTimerHrs=CAM_TIMER_OPTIONS[ni];
   updateCamTimerUI();
-  // 设置或清除定时
   if(camTimerHrs>0){
     setCamTimer(camTimerHrs);
   }else{
@@ -948,35 +930,38 @@ function adjCamTimer(dir){
 }
 function setCamTimer(hrs){
   clearCamTimer();
+  camTimerHrs=hrs;
   camTimerEndAt=Date.now()+hrs*3600000;
   camTimerTm=setTimeout(()=>{
-    // 到时间了，自动关闭注视感知
+    // 到时间了：关闭注视感知 + 释放 Wake Lock → 系统自动息屏
     camTimerTm=null;
     camTimerHrs=0;camTimerEndAt=0;
     if(attnOn){
       attnOn=false;localStorage.setItem('sb-attn',false);
       document.getElementById('swAttn').classList.remove('on');
       stopFace();showCamTimerRow(false);
-      updateStatus();
     }
+    // 关键：释放屏幕常亮，让系统按用户设置的自动锁定时间息屏
+    releaseWake();
     updateCamTimerUI();
-    console.log('[CamTimer] 定时到期，已关闭摄像头');
+    updateStatus();
+    console.log('[CamTimer] 定时到期，已关闭摄像头并释放屏幕常亮');
   },hrs*3600000);
-  console.log('[CamTimer] 设置'+hrs+'小时后关闭摄像头');
+  console.log('[CamTimer] 设置'+hrs+'小时后关闭');
 }
 function clearCamTimer(){
   if(camTimerTm){clearTimeout(camTimerTm);camTimerTm=null}
-  camTimerEndAt=0;camTimerHrs=0;
-  updateCamTimerUI();
+  camTimerEndAt=0;
+  // 不重置 camTimerHrs，保留用户选择
 }
 function updateCamTimerUI(){
   const valEl=document.getElementById('camTimerVal');
   const descEl=document.getElementById('camTimerDesc');
   if(!valEl)return;
   if(camTimerHrs===0){
-    valEl.textContent='关';
+    valEl.textContent='常驻';
     valEl.classList.add('off');
-    descEl.textContent='省电：到时自动关闭注视感知';
+    descEl.textContent='摄像头将一直运行';
   }else{
     valEl.textContent=camTimerHrs+'h';
     valEl.classList.remove('off');
@@ -984,9 +969,9 @@ function updateCamTimerUI(){
       const endTime=new Date(camTimerEndAt);
       const hh=String(endTime.getHours()).padStart(2,'0');
       const mm=String(endTime.getMinutes()).padStart(2,'0');
-      descEl.innerHTML='将于 <span class="ct-countdown">'+hh+':'+mm+'</span> 自动关闭';
+      descEl.innerHTML=hh+':'+mm+' 关闭摄像头，之后系统自动息屏';
     }else{
-      descEl.textContent=camTimerHrs+'小时后自动关闭注视感知';
+      descEl.textContent=camTimerHrs+'小时后关闭，之后系统自动息屏';
     }
   }
 }
@@ -1001,16 +986,9 @@ function tLP(){
   document.body.classList.toggle('lowpow',lpOn);
   startClock();
 }
-function tSO(){
-  soOn=!soOn;localStorage.setItem('sb-so',soOn);
-  document.getElementById('swSO').classList.toggle('on',soOn);
-  if(!soOn){cancelScreenOff();if(isScreenOff)wakeUp('setting')}
-  updateStatus();
-}
-
 // ====== 屏幕状态机 ======
-// 状态：'bright' → 'dim' → 'screenoff'
-//       ↑__________________________|  (人脸/触摸唤醒)
+// 简化：'bright' → 'dim' → 'screenoff'（息屏 = 释放 Wake Lock 让系统锁屏）
+//       ↑__________________________|  (触摸唤醒)
 let screenState='bright';
 
 // -- 变暗 --
@@ -1021,8 +999,6 @@ function startDim(){
     screenState='dim';
     document.getElementById('dim').classList.add('on');
     console.log('[Screen] → dim');
-    // 变暗后开始息屏倒计时（只要开了自动息屏就行，不要求 attnOn）
-    if(soOn) startScreenOffTimer();
     updateStatus();
   },DIM_DELAY);
 }
@@ -1030,39 +1006,33 @@ function clearDim(){if(dimTm){clearTimeout(dimTm);dimTm=null}}
 // undim 只做视觉还原，不管任何 timer
 function undim(){document.getElementById('dim').classList.remove('on')}
 
-// -- 息屏计时 --
-function startScreenOffTimer(){
-  cancelScreenOff();
-  screenOffStartAt=Date.now();
-  screenOffTm=setTimeout(()=>{
-    if(ringing)return; // 闹钟响铃中不息屏
-    enterScreenOff();
-  },SCREEN_OFF_DELAY);
-}
-function cancelScreenOff(){
-  if(screenOffTm){clearTimeout(screenOffTm);screenOffTm=null}
-}
-
-// -- 进入息屏 --
+// -- 息屏（释放 Wake Lock，系统自动锁屏）--
 function enterScreenOff(){
   if(isScreenOff)return;
   isScreenOff=true;
   screenState='screenoff';
-  document.getElementById('screenOff').classList.add('on');
-  // 降频时钟节省性能
-  if(clockTm)clearInterval(clockTm);
-  clockTm=setInterval(tick,30000);
-  // 关键：息屏后必须保证人脸检测在跑，才能通过人脸唤醒（低频模式省电）
-  ensureFaceDetectionRunning('screenoff');
-  console.log('[Screen] → screenoff');
+  // 停止摄像头
+  if(attnOn){
+    attnOn=false;localStorage.setItem('sb-attn',false);
+    document.getElementById('swAttn').classList.remove('on');
+    stopFace();showCamTimerRow(false);clearCamTimer();
+  }
+  // 停止时钟
+  if(clockTm){clearInterval(clockTm);clockTm=null}
+  // 关键：释放屏幕常亮，让系统自动锁屏
+  releaseWake();
+  console.log('[Screen] → screenoff (Wake Lock released, system will lock screen)');
   updateStatus();
+}
+function cancelScreenOff(){
+  if(screenOffTm){clearTimeout(screenOffTm);screenOffTm=null}
 }
 
 // -- 唤醒（统一入口，触摸/人脸都走这里）--
 function wakeUp(reason){
   console.log('[wakeUp]',reason,'screenState=',screenState,'isScreenOff=',isScreenOff);
 
-  // 特殊处理：变暗状态下触摸，只恢复亮度+重新开始变暗，不取消息屏倒计时
+  // 变暗状态下触摸，只恢复亮度+重新开始变暗
   if(reason==='touch'&&screenState==='dim'&&!isScreenOff){
     clearDim();
     undim();
@@ -1071,7 +1041,6 @@ function wakeUp(reason){
     dimTm=setTimeout(()=>{
       screenState='dim';
       document.getElementById('dim').classList.add('on');
-      // 注意：不重新启动 screenOffTimer，让之前的继续倒计时
       updateStatus();
     },DIM_DELAY);
     updateStatus();
@@ -1086,15 +1055,14 @@ function wakeUp(reason){
   // 息屏还原
   if(isScreenOff){
     isScreenOff=false;
-    document.getElementById('screenOff').classList.remove('on');
-    startClock(); // 恢复正常时钟频率
+    reqWake(); // 重新申请屏幕常亮
+    startClock(); // 恢复时钟
   }
   screenState='bright';
   lastFaceTime=Date.now();
   console.log('[Screen] → bright (' + reason + ')');
-  // 唤醒后重新开始变暗倒计时
-  // face 唤醒：setLook 会进入 gazePaused → 5min → startDim，这里不启动
-  // 其他唤醒（touch/alarm/stop/setting）：需要重启变暗流程
+  // face 唤醒：setLook 会进入 gazePaused → 5min → startDim
+  // 其他唤醒：需要重启变暗流程
   if(reason!=='face'){
     if(reason==='touch') ensureFaceDetectionRunning();
     startDim();
@@ -1136,22 +1104,11 @@ async function startFace(){
 function setLook(v){
   // 立即更新绿点状态
   const dot=document.getElementById('faceDot');
-  if(dot && !isScreenOff && !gazePaused && attnOn){
+  if(dot && !gazePaused && attnOn){
     dot.classList.toggle('on',v);
   }
-  // === 息屏状态：只要检测到人脸就唤醒，不做去重 ===
-  if(isScreenOff){
-    if(v){
-      wakeUp('face');
-      // 进入注视暂停周期（看到人脸→亮屏5分钟）
-      isLooking=true;
-      enterGazePause();
-    }
-    // 息屏时没检测到人脸→什么都不做，继续息屏
-    return;
-  }
-  // === 正常状态（bright/dim）===
-  if(gazePaused)return; // 注视暂停期，忽略所有检测结果
+  // 注视暂停期，忽略所有检测结果
+  if(gazePaused)return;
   if(v===isLooking)return; // 去重
   isLooking=v;
   if(v){
@@ -1220,7 +1177,7 @@ function releaseCamera(){
 }
 
 // 确保人脸检测正在运行（如果没在跑就重启）
-async function ensureFaceDetectionRunning(mode){
+async function ensureFaceDetectionRunning(){
   if(!attnOn)return;
   if(faceInt)return; // 已经在跑
   // 强制清除暂停状态
@@ -1229,24 +1186,22 @@ async function ensureFaceDetectionRunning(mode){
   if(gazeTm){clearTimeout(gazeTm);gazeTm=null}
   // 确保轨道已启用
   resumeCamera();
-  restartFaceDetection(mode||'normal');
-  console.log('[Face] 确保检测运行中, 模式:'+(mode||'normal'));
+  restartFaceDetection();
+  console.log('[Face] 确保检测运行中');
 }
 // 在已有摄像头流的情况下，重启人脸检测轮询
-// mode: 'normal'|'screenoff' 控制检测频率
-function restartFaceDetection(mode){
+function restartFaceDetection(){
   if(faceInt){clearInterval(faceInt);faceInt=null}
   const v=document.getElementById('face-vid');
-  if(!vidStream||!v.srcObject)return; // 没有摄像头流，无法重启
-  const isOff=mode==='screenoff';
+  if(!vidStream||!v.srcObject)return;
   if(faceDetector){
-    const interval=isOff?FACE_INTERVAL_SCREENOFF:(lpOn?FACE_INTERVAL_LOWPOW:FACE_INTERVAL_NORMAL);
+    const interval=lpOn?FACE_INTERVAL_LOWPOW:FACE_INTERVAL_NORMAL;
     faceInt=setInterval(async()=>{
       try{const f=await faceDetector.detect(v);setLook(f.length>0)}catch(e){}
     },interval);
-    console.log('[Face] 重启检测, 模式:'+mode+', 间隔:'+interval+'ms');
+    console.log('[Face] 重启检测, 间隔:'+interval+'ms');
   }else{
-    const interval=isOff?MOTION_INTERVAL_SCREENOFF:(lpOn?MOTION_INTERVAL_LOWPOW:MOTION_INTERVAL_NORMAL);
+    const interval=lpOn?MOTION_INTERVAL_LOWPOW:MOTION_INTERVAL_NORMAL;
     const cv=document.createElement('canvas');cv.width=160;cv.height=120;
     const ctx=cv.getContext('2d',{willReadFrequently:true});let prev=null;
     faceInt=setInterval(()=>{
@@ -1267,8 +1222,8 @@ function stopFace(){
 }
 
 // ====== 状态指示器 ======
-// 记录各阶段开始时间，用于显示倒计时
-let dimStartAt=0, screenOffStartAt=0;
+// 记录变暗开始时间
+let dimStartAt=0;
 
 function updateStatus(){
   const el=document.getElementById('statusText');
@@ -1303,20 +1258,17 @@ function updateStatus(){
   if(screenState==='bright'&&dimTm){
     const left=Math.max(0,Math.ceil((dimStartAt+DIM_DELAY-now)/1000));
     txt+=' · '+left+'s后变暗';
-  }else if(screenState==='dim'&&screenOffTm){
-    const left=Math.max(0,Math.ceil((screenOffStartAt+SCREEN_OFF_DELAY-now)/1000));
-    txt+=' · '+fmtSec(left)+'后息屏';
   }else if(screenState==='dim'){
     txt+=' · 已变暗';
   }else if(screenState==='screenoff'){
-    txt+=' · 已息屏';
+    txt+=' · 已交由系统息屏';
   }
 
   el.textContent=txt;
 
-  // 绿点：只在正常亮屏且检测到人脸时亮，息屏/暂停/关闭时灭
+  // 绿点：只在正常亮屏且检测到人脸时亮
   if(dot){
-    const showDot=attnOn && faceInt && isLooking && !isScreenOff && !gazePaused;
+    const showDot=attnOn && faceInt && isLooking && !gazePaused;
     dot.classList.toggle('on',showDot);
   }
 }
