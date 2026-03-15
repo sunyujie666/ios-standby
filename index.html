@@ -66,8 +66,8 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 }
 
 .clock-time{
-  display:flex;
-  align-items:flex-start;
+  display:inline-flex;
+  align-items:center;
   justify-content:center;
   font-size:min(22vw, 180px);
   font-weight:200;
@@ -76,42 +76,73 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
   font-variant-numeric:tabular-nums;
   color:#fff;
   text-align:center;
+  position:relative;
+  padding-right:min(8vw,64px);
 }
 .clock-hm{
-  display:inline;
+  display:inline-block;
 }
 .clock-colon{
   opacity:.4;
   animation:blink 2s ease-in-out infinite;
 }
 .clock-sec{
+  position:absolute;
+  top:0.12em;
+  right:0;
   font-size:min(4vw, 32px);
   font-weight:300;
   color:rgba(255,255,255,.2);
-  margin-left:4px;
-  margin-top:0.15em;
   line-height:1;
-  flex-shrink:0;
+  letter-spacing:0;
+  transform:translateX(0);
 }
 .clock-date{
-  font-size:min(3.5vw, 24px);
-  font-weight:400;
-  color:rgba(255,255,255,.3);
-  margin-top:12px;
+  font-size:min(4.2vw, 28px);
+  font-weight:500;
+  color:rgba(255,255,255,.55);
+  margin-top:14px;
   letter-spacing:2px;
   text-align:center;
+}
+.clock-weather{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:min(2.5vw, 16px);
+  margin-top:8px;
+  font-size:min(2.6vw, 15px);
+  font-weight:400;
+  color:rgba(255,255,255,.18);
+  letter-spacing:0.5px;
+}
+.clock-weather .w-item{
+  display:flex;align-items:center;gap:3px;
+}
+.clock-weather .w-icon{
+  font-size:min(2.8vw, 16px);
+  opacity:.7;
 }
 
 .status-bar{
   position:absolute;
   bottom:8px;left:0;right:0;
-  text-align:center;
+  display:flex;align-items:center;justify-content:center;gap:6px;
   font-size:10px;
   color:rgba(255,255,255,.15);
   letter-spacing:0.5px;
   font-weight:400;
   line-height:1.4;
 }
+.face-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#30d158;
+  box-shadow:0 0 6px rgba(48,209,88,.5);
+  opacity:0;
+  transition:opacity .3s;
+  flex-shrink:0;
+}
+.face-dot.on{opacity:1}
 
 @keyframes blink{
   0%,100%{opacity:.4}
@@ -374,10 +405,9 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
   <div class="g-box">
     <div class="g-emoji">🕐</div>
     <div class="g-title">StandBy</div>
-    <div class="g-sub">横放 iPhone，变身智能时钟 + 闹钟</div>
+    <div class="g-sub">横放 iPhone，变身智能时钟</div>
     <button class="g-btn" id="startBtn">开始体验</button>
     <div class="g-tips">
-      <div class="g-tip"><div class="g-tip-icon">↕️</div><div class="g-tip-text">上下滑动<br>切换主题</div></div>
       <div class="g-tip"><div class="g-tip-icon">⏰</div><div class="g-tip-text">右侧闹钟<br>快捷设定</div></div>
       <div class="g-tip"><div class="g-tip-icon">👁️</div><div class="g-tip-text">注视感知<br>自动亮屏</div></div>
     </div>
@@ -397,7 +427,12 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
         <span class="clock-hm">00<span class="clock-colon">:</span>00</span><span class="clock-sec">00</span>
       </div>
       <div class="clock-date" id="clockDate">星期日 · 3月15日</div>
-      <div class="status-bar" id="statusBar"></div>
+      <div class="clock-weather" id="clockWeather">
+        <span class="w-item"><span class="w-icon">🌡</span><span id="wTemp">--°</span></span>
+        <span class="w-item"><span class="w-icon">💧</span><span id="wHumi">--%</span></span>
+        <span class="w-item"><span class="w-icon" id="wCondIcon">☁</span><span id="wCond">--</span></span>
+      </div>
+      <div class="status-bar" id="statusBar"><span class="face-dot" id="faceDot"></span><span id="statusText"></span></div>
     </div>
 
     <!-- 右侧：闹钟 -->
@@ -527,8 +562,17 @@ let dimTm=null, clockTm=null, uiTm=null;
 let faceDetector=null,vidStream=null,faceInt=null;
 let isLooking=false,gazeTm=null,gazePaused=false;
 let screenOffTm=null, isScreenOff=false, lastFaceTime=Date.now();
+let gazeEndAt=0; // 注视暂停结束时间戳
 const DIM_DELAY=6000,GAZE_DUR=300000;
-const SCREEN_OFF_DELAY=300000; // 5分钟无人脸则息屏
+const SCREEN_OFF_DELAY=30000; // 测试：变暗后30秒息屏（正式环境改为300000）
+
+// 检测频率（毫秒）——分场景降低频率省电
+const FACE_INTERVAL_NORMAL=2000;    // 正常状态：2秒一次（原500ms）
+const FACE_INTERVAL_LOWPOW=4000;    // 低电量：4秒一次
+const FACE_INTERVAL_SCREENOFF=3000; // 息屏状态：3秒一次
+const MOTION_INTERVAL_NORMAL=2000;  // 运动检测正常：2秒一次（原800ms）
+const MOTION_INTERVAL_LOWPOW=4000;  // 运动检测低电量：4秒一次
+const MOTION_INTERVAL_SCREENOFF=3000;
 const CIRC=2*Math.PI*140;
 
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -585,6 +629,7 @@ function skipGuide(){
   document.getElementById('app').classList.add('show');
   reqWake();
   if(attnOn)setTimeout(startFace,400);
+  startWeather();
   startDim();
   setTimeout(updateStatus,500);
 }
@@ -625,6 +670,71 @@ function tick(){
   document.getElementById('clockTime').innerHTML=
     `<span class="clock-hm">${h}<span class="clock-colon">:</span>${m}</span><span class="clock-sec">${s}</span>`;
   document.getElementById('clockDate').textContent=ds;
+}
+
+// ====== 天气 ======
+let weatherTimer=null;
+const WEATHER_INTERVAL=1800000; // 30分钟刷新一次
+
+// 天气代码 → 图标 + 描述
+function weatherDesc(code){
+  if(code===0) return ['☀️','晴'];
+  if(code<=3) return ['⛅','多云'];
+  if(code<=48) return ['🌫','雾'];
+  if(code<=57) return ['🌦','毛毛雨'];
+  if(code<=67) return ['🌧','雨'];
+  if(code<=77) return ['🌨','雪'];
+  if(code<=82) return ['🌧','阵雨'];
+  if(code<=86) return ['🌨','阵雪'];
+  if(code>=95) return ['⛈','雷暴'];
+  return ['☁️','多云'];
+}
+
+async function fetchWeather(){
+  try{
+    // 先尝试定位
+    const pos=await new Promise((ok,no)=>{
+      navigator.geolocation.getCurrentPosition(ok,no,{timeout:8000,maximumAge:600000});
+    });
+    const lat=pos.coords.latitude.toFixed(2);
+    const lon=pos.coords.longitude.toFixed(2);
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto`;
+    const resp=await fetch(url);
+    const data=await resp.json();
+    const cur=data.current;
+    const temp=Math.round(cur.temperature_2m);
+    const humi=cur.relative_humidity_2m;
+    const [icon,desc]=weatherDesc(cur.weather_code);
+    document.getElementById('wTemp').textContent=temp+'°';
+    document.getElementById('wHumi').textContent=humi+'%';
+    document.getElementById('wCondIcon').textContent=icon;
+    document.getElementById('wCond').textContent=desc;
+    console.log('[Weather] 更新成功:',temp+'°',humi+'%',desc);
+  }catch(e){
+    console.log('[Weather] 获取失败:',e.message);
+    // 定位失败时尝试用 IP 定位（fallback）
+    try{
+      const resp=await fetch('https://api.open-meteo.com/v1/forecast?latitude=31.23&longitude=121.47&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto');
+      const data=await resp.json();
+      const cur=data.current;
+      const temp=Math.round(cur.temperature_2m);
+      const humi=cur.relative_humidity_2m;
+      const [icon,desc]=weatherDesc(cur.weather_code);
+      document.getElementById('wTemp').textContent=temp+'°';
+      document.getElementById('wHumi').textContent=humi+'%';
+      document.getElementById('wCondIcon').textContent=icon;
+      document.getElementById('wCond').textContent=desc;
+      console.log('[Weather] fallback 更新成功');
+    }catch(e2){
+      console.log('[Weather] fallback 也失败:',e2.message);
+    }
+  }
+}
+
+function startWeather(){
+  fetchWeather();
+  if(weatherTimer)clearInterval(weatherTimer);
+  weatherTimer=setInterval(fetchWeather,WEATHER_INTERVAL);
 }
 
 // ====== UI淡出 ======
@@ -708,7 +818,7 @@ function trigger(){
   document.getElementById('modalLabel').textContent=
     (alarm?alarm.min:'')+' 分钟闹钟到！';
   document.getElementById('modal').classList.add('show');
-  setTimeout(()=>{if(ringing)DM()},60000);
+  setTimeout(()=>{if(ringing)DM()},30000); // 最多响30秒
 }
 function DM(){
   document.getElementById('modal').classList.remove('show');
@@ -817,6 +927,7 @@ let screenState='bright';
 // -- 变暗 --
 function startDim(){
   clearDim();
+  dimStartAt=Date.now();
   dimTm=setTimeout(()=>{
     screenState='dim';
     document.getElementById('dim').classList.add('on');
@@ -833,6 +944,7 @@ function undim(){document.getElementById('dim').classList.remove('on')}
 // -- 息屏计时 --
 function startScreenOffTimer(){
   cancelScreenOff();
+  screenOffStartAt=Date.now();
   screenOffTm=setTimeout(()=>{
     if(ringing)return; // 闹钟响铃中不息屏
     enterScreenOff();
@@ -851,14 +963,32 @@ function enterScreenOff(){
   // 降频时钟节省性能
   if(clockTm)clearInterval(clockTm);
   clockTm=setInterval(tick,30000);
-  // 关键：息屏后必须保证人脸检测在跑，才能通过人脸唤醒
-  ensureFaceDetectionRunning();
+  // 关键：息屏后必须保证人脸检测在跑，才能通过人脸唤醒（低频模式省电）
+  ensureFaceDetectionRunning('screenoff');
   console.log('[Screen] → screenoff');
   updateStatus();
 }
 
 // -- 唤醒（统一入口，触摸/人脸都走这里）--
 function wakeUp(reason){
+  console.log('[wakeUp]',reason,'screenState=',screenState,'isScreenOff=',isScreenOff);
+
+  // 特殊处理：变暗状态下触摸，只恢复亮度+重新开始变暗，不取消息屏倒计时
+  if(reason==='touch'&&screenState==='dim'&&!isScreenOff){
+    clearDim();
+    undim();
+    screenState='bright';
+    dimStartAt=Date.now();
+    dimTm=setTimeout(()=>{
+      screenState='dim';
+      document.getElementById('dim').classList.add('on');
+      // 注意：不重新启动 screenOffTimer，让之前的继续倒计时
+      updateStatus();
+    },DIM_DELAY);
+    updateStatus();
+    return;
+  }
+
   // 清除所有 timer
   clearDim();
   cancelScreenOff();
@@ -893,10 +1023,11 @@ async function startFace(){
       v.srcObject=vidStream;await v.play();
       faceInt=setInterval(async()=>{
         try{const f=await faceDetector.detect(v);setLook(f.length>0)}catch(e){}
-      },lpOn?1500:500);
-      startDim();return;
+      },lpOn?FACE_INTERVAL_LOWPOW:FACE_INTERVAL_NORMAL);
+      console.log('[Face] FaceDetector API 启动, 间隔:'+(lpOn?FACE_INTERVAL_LOWPOW:FACE_INTERVAL_NORMAL)+'ms');
+      updateStatus();return;
     }
-  }catch(e){}
+  }catch(e){console.log('[Face] FaceDetector 不可用:',e.message)}
   try{
     const v=document.getElementById('face-vid');
     vidStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:160,height:120}});
@@ -908,11 +1039,17 @@ async function startFace(){
       const data=ctx.getImageData(0,0,160,120).data;
       if(prev){let d=0;for(let i=0;i<data.length;i+=160)d+=Math.abs(data[i]-prev[i]);setLook(d/(data.length/160)>3)}
       prev=new Uint8Array(data);
-    },lpOn?2000:800);
-    startDim();
-  }catch(e){}
+    },lpOn?MOTION_INTERVAL_LOWPOW:MOTION_INTERVAL_NORMAL);
+    console.log('[Face] 运动检测 fallback 启动, 间隔:'+(lpOn?MOTION_INTERVAL_LOWPOW:MOTION_INTERVAL_NORMAL)+'ms');
+    updateStatus();
+  }catch(e){console.log('[Face] 摄像头不可用:',e.message)}
 }
 function setLook(v){
+  // 立即更新绿点状态
+  const dot=document.getElementById('faceDot');
+  if(dot && !isScreenOff && !gazePaused && attnOn){
+    dot.classList.toggle('on',v);
+  }
   // === 息屏状态：只要检测到人脸就唤醒，不做去重 ===
   if(isScreenOff){
     if(v){
@@ -939,19 +1076,23 @@ function setLook(v){
   }
 }
 
-// 进入注视暂停：亮屏5分钟，期间停止检测以省电
+// 进入注视暂停：亮屏5分钟，期间关闭摄像头省电
 function enterGazePause(){
   if(gazeTm)clearTimeout(gazeTm);
   gazePaused=true;
-  // 停止检测轮询（省电）
+  gazeEndAt=Date.now()+GAZE_DUR;
+  // 停止检测轮询
   if(faceInt){clearInterval(faceInt);faceInt=null}
-  gazeTm=setTimeout(()=>{
+  // ★ 关闭摄像头流省电
+  pauseCamera();
+  gazeTm=setTimeout(async()=>{
     // 5分钟到，恢复检测
     gazeTm=null;
     gazePaused=false;
     isLooking=false;
-    // ★ 关键修复：重启人脸检测 + 开始变暗倒计时
-    restartFaceDetection();
+    // ★ 重新打开摄像头 + 重启检测 + 开始变暗倒计时
+    await resumeCamera();
+    restartFaceDetection('normal');
     startDim();
     console.log('[Gaze] 注视暂停结束，恢复检测');
     updateStatus();
@@ -959,29 +1100,60 @@ function enterGazePause(){
   updateStatus();
 }
 
+// 暂停摄像头（关闭流但保留 faceDetector 实例）
+function pauseCamera(){
+  if(vidStream){
+    vidStream.getTracks().forEach(t=>t.stop());
+    vidStream=null;
+    console.log('[Camera] 已关闭省电');
+  }
+  const v=document.getElementById('face-vid');
+  if(v)v.srcObject=null;
+}
+// 恢复摄像头
+async function resumeCamera(){
+  try{
+    const v=document.getElementById('face-vid');
+    const constraints=faceDetector
+      ?{video:{facingMode:'user',width:320,height:240}}
+      :{video:{facingMode:'user',width:160,height:120}};
+    vidStream=await navigator.mediaDevices.getUserMedia(constraints);
+    v.srcObject=vidStream;
+    await v.play();
+    console.log('[Camera] 已重新打开');
+  }catch(e){
+    console.log('[Camera] 重新打开失败:',e.message);
+  }
+}
+
 // 确保人脸检测正在运行（如果没在跑就重启）
-function ensureFaceDetectionRunning(){
+async function ensureFaceDetectionRunning(mode){
   if(!attnOn)return;
   if(faceInt)return; // 已经在跑
   // 强制清除暂停状态
   gazePaused=false;
   isLooking=false;
   if(gazeTm){clearTimeout(gazeTm);gazeTm=null}
-  restartFaceDetection();
-  console.log('[Face] 确保检测运行中');
+  // 如果摄像头已关闭，先恢复
+  if(!vidStream) await resumeCamera();
+  restartFaceDetection(mode||'normal');
+  console.log('[Face] 确保检测运行中, 模式:'+(mode||'normal'));
 }
 // 在已有摄像头流的情况下，重启人脸检测轮询
-function restartFaceDetection(){
+// mode: 'normal'|'screenoff' 控制检测频率
+function restartFaceDetection(mode){
   if(faceInt){clearInterval(faceInt);faceInt=null}
   const v=document.getElementById('face-vid');
   if(!vidStream||!v.srcObject)return; // 没有摄像头流，无法重启
+  const isOff=mode==='screenoff';
   if(faceDetector){
-    // 使用 FaceDetector API
+    const interval=isOff?FACE_INTERVAL_SCREENOFF:(lpOn?FACE_INTERVAL_LOWPOW:FACE_INTERVAL_NORMAL);
     faceInt=setInterval(async()=>{
       try{const f=await faceDetector.detect(v);setLook(f.length>0)}catch(e){}
-    },lpOn?1500:500);
+    },interval);
+    console.log('[Face] 重启检测, 模式:'+mode+', 间隔:'+interval+'ms');
   }else{
-    // 使用运动检测 fallback
+    const interval=isOff?MOTION_INTERVAL_SCREENOFF:(lpOn?MOTION_INTERVAL_LOWPOW:MOTION_INTERVAL_NORMAL);
     const cv=document.createElement('canvas');cv.width=160;cv.height=120;
     const ctx=cv.getContext('2d',{willReadFrequently:true});let prev=null;
     faceInt=setInterval(()=>{
@@ -989,7 +1161,8 @@ function restartFaceDetection(){
       const data=ctx.getImageData(0,0,160,120).data;
       if(prev){let d=0;for(let i=0;i<data.length;i+=160)d+=Math.abs(data[i]-prev[i]);setLook(d/(data.length/160)>3)}
       prev=new Uint8Array(data);
-    },lpOn?2000:800);
+    },interval);
+    console.log('[Face] 重启运动检测, 模式:'+mode+', 间隔:'+interval+'ms');
   }
 }
 function stopFace(){
@@ -1001,30 +1174,57 @@ function stopFace(){
 }
 
 // ====== 状态指示器 ======
-function updateStatus(){
-  const parts=[];
-  // 屏幕状态
-  const stateMap={bright:'🔆 亮屏',dim:'🌑 变暗',screenoff:'⚫ 息屏'};
-  parts.push(stateMap[screenState]||screenState);
-  // 注视感知
-  if(attnOn){
-    if(faceInt) parts.push('👁 检测中');
-    else if(gazePaused) parts.push('👁 注视暂停');
-    else parts.push('👁 待启动');
-  }else{
-    parts.push('👁 关');
-  }
-  // 自动息屏
-  parts.push(soOn?'💤 自动息屏':'💤 关');
-  // 息屏倒计时
-  if(screenOffTm) parts.push('⏳ 息屏倒计时中');
-  if(dimTm) parts.push('⏳ 变暗倒计时中');
+// 记录各阶段开始时间，用于显示倒计时
+let dimStartAt=0, screenOffStartAt=0;
 
-  const el=document.getElementById('statusBar');
-  if(el) el.textContent=parts.join(' · ');
+function updateStatus(){
+  const el=document.getElementById('statusText');
+  const dot=document.getElementById('faceDot');
+  if(!el)return;
+  const now=Date.now();
+  let txt='';
+
+  // 摄像头状态
+  if(attnOn){
+    if(vidStream){
+      if(faceInt) txt='📷 检测中';
+      else txt='📷 开启';
+    }else if(gazePaused){
+      const left=gazeTm?Math.max(0,Math.ceil((gazeEndAt-now)/1000)):0;
+      txt='📷 休眠 '+fmtSec(left);
+    }else{
+      txt='📷 待启动';
+    }
+  }else{
+    txt='📷 关闭';
+  }
+
+  if(screenState==='bright'&&dimTm){
+    const left=Math.max(0,Math.ceil((dimStartAt+DIM_DELAY-now)/1000));
+    txt+=' · '+left+'s后变暗';
+  }else if(screenState==='dim'&&screenOffTm){
+    const left=Math.max(0,Math.ceil((screenOffStartAt+SCREEN_OFF_DELAY-now)/1000));
+    txt+=' · '+fmtSec(left)+'后息屏';
+  }else if(screenState==='dim'){
+    txt+=' · 已变暗';
+  }else if(screenState==='screenoff'){
+    txt+=' · 已息屏';
+  }
+
+  el.textContent=txt;
+
+  // 绿点：只在正常亮屏且检测到人脸时亮，息屏/暂停/关闭时灭
+  if(dot){
+    const showDot=attnOn && faceInt && isLooking && !isScreenOff && !gazePaused;
+    dot.classList.toggle('on',showDot);
+  }
 }
-// 每2秒刷新一次状态
-setInterval(updateStatus,2000);
+function fmtSec(s){
+  if(s>=60)return Math.floor(s/60)+'分'+String(s%60).padStart(2,'0')+'秒';
+  return s+'秒';
+}
+// 每秒刷新
+setInterval(updateStatus,1000);
 
 window.onerror=(m,u,l)=>console.error('ERR:',m,'L:',l);
 </script>
