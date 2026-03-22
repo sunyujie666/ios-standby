@@ -13,7 +13,9 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>StandBy Mode</title>
 <style>
+/* ========== Reset ========== */
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
 html,body{
   width:100%;height:100%;overflow:hidden;
   background:#000;color:#fff;
@@ -21,13 +23,27 @@ html,body{
   -webkit-user-select:none;user-select:none;
   -webkit-font-smoothing:antialiased;
   -webkit-tap-highlight-color:transparent;
-}
-body{
-  display:flex;align-items:center;justify-content:center;
-  position:fixed;inset:0;
+  touch-action:manipulation;
 }
 
-/* === 引导页 === */
+/* ========== 强制横屏（仅竖屏时旋转） ========== */
+@media screen and (orientation:portrait){
+  html{
+    width:100vh;height:100vw;
+    transform:rotate(90deg);
+    transform-origin:top left;
+    position:absolute;
+    top:0;left:100vw;
+  }
+}
+
+body{
+  width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;overflow:hidden;
+}
+
+/* ========== 引导页 ========== */
 #guide{
   position:fixed;inset:0;background:#000;z-index:1000;
   display:flex;align-items:center;justify-content:center;
@@ -35,7 +51,7 @@ body{
 }
 #guide.hide{opacity:0;pointer-events:none}
 #guide.gone{display:none}
-.g-box{text-align:center;padding:32px}
+.g-box{text-align:center;padding:32px;max-width:400px}
 .g-emoji{font-size:64px;margin-bottom:16px}
 .g-title{font-size:36px;font-weight:800;letter-spacing:-1px;margin-bottom:6px}
 .g-sub{font-size:15px;color:rgba(255,255,255,.4);margin-bottom:32px}
@@ -45,6 +61,7 @@ body{
   color:#000;border:none;border-radius:50px;
   font-size:17px;font-weight:700;cursor:pointer;
   box-shadow:0 4px 20px rgba(255,159,10,.3);
+  -webkit-tap-highlight-color:transparent;
 }
 .g-btn:active{transform:scale(.96)}
 .g-tips{display:flex;justify-content:center;gap:28px;margin-top:28px}
@@ -52,37 +69,42 @@ body{
 .g-tip-icon{font-size:22px;margin-bottom:4px}
 .g-tip-text{font-size:11px;color:rgba(255,255,255,.25);line-height:1.4}
 
-/* === 主布局 === */
-#app{width:100%;height:100%;display:none;position:relative;overflow:hidden}
+/* ========== 主容器 ========== */
+#app{
+  width:100%;height:100%;
+  display:none;position:relative;overflow:hidden;
+}
 #app.show{display:block}
 
-/* === 页面滑动容器 === */
+/* ========== 页面滑动 ========== */
 .pages{
-  display:flex;width:200%;height:100%;
+  display:flex;
+  width:200%;height:100%;
   transition:transform .5s cubic-bezier(.25,.46,.45,.94);
 }
 .pages.no-anim{transition:none}
+
 .page{
-  width:50%;height:100%;flex-shrink:0;
+  width:50%;height:100%;
+  flex-shrink:0;
   display:flex;
-  padding:16px;gap:14px;
-  align-items:center;
-  justify-content:center;
+  align-items:stretch;
+  padding:12px;gap:12px;
 }
 
-/* === 页面指示器 === */
+/* ========== 页面指示器 ========== */
 .page-dots{
-  position:fixed;bottom:max(8px,env(safe-area-inset-bottom));
+  position:fixed;
+  bottom:max(6px,env(safe-area-inset-bottom));
   left:50%;transform:translateX(-50%);
   display:flex;gap:7px;z-index:60;
-  padding:5px 10px;border-radius:20px;
+  padding:4px 10px;border-radius:20px;
   background:rgba(255,255,255,.06);
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
 }
 .page-dot{
   width:7px;height:7px;border-radius:50%;
-  background:rgba(255,255,255,.2);
-  transition:all .3s;
+  background:rgba(255,255,255,.2);transition:all .3s;
 }
 .page-dot.active{
   width:20px;border-radius:4px;
@@ -90,47 +112,39 @@ body{
   box-shadow:0 0 8px rgba(255,159,10,.4);
 }
 
-/* ===== 通用卡片样式 ===== */
-.card{
-  border-radius:26px;
-  background:linear-gradient(145deg,rgba(28,30,38,.95) 0%,rgba(16,18,22,.98) 100%);
+/* ========== 通用面板风格 ========== */
+.panel{
+  border-radius:22px;
+  background:linear-gradient(145deg,rgba(28,30,38,.95),rgba(16,18,22,.98));
   border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 8px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
+  box-shadow:0 8px 32px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);
+  overflow:hidden;
 }
 
-/* ===== 第一页：模拟时钟 + 日历 ===== */
+/* ========== 第一页：模拟时钟 + 日历 ========== */
 
 /* -- 模拟时钟面板 -- */
 .analog-panel{
-  flex:1;display:flex;align-items:center;justify-content:center;
-  height:calc(100% - 32px);
-  border-radius:26px;
-  background:linear-gradient(145deg,rgba(28,30,38,.95) 0%,rgba(16,18,22,.98) 100%);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 8px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
-  position:relative;overflow:hidden;min-width:0;
+  flex:1;min-width:0;
+  display:flex;align-items:center;justify-content:center;
 }
 .analog-clock{
   position:relative;
-  width:min(72vh,320px);height:min(72vh,320px);
+  /* 用容器高度来决定大小，保持圆形 */
+  width:min(85%,calc(100vh - 60px));
+  max-width:380px;
+  aspect-ratio:1;
 }
 .analog-face{
   width:100%;height:100%;border-radius:50%;
-  background:
-    radial-gradient(circle at 50% 38%, rgba(50,52,62,.9) 0%, rgba(24,26,30,1) 55%, rgba(14,15,18,1) 100%);
+  background:radial-gradient(circle at 50% 38%,rgba(50,52,62,.9),rgba(24,26,30,1) 55%,rgba(14,15,18,1));
   border:2px solid rgba(255,255,255,.10);
   position:relative;
-  box-shadow:
-    0 0 0 1px rgba(255,255,255,.04),
-    0 16px 48px rgba(0,0,0,.6),
-    inset 0 0 50px rgba(0,0,0,.35);
+  box-shadow:0 0 0 1px rgba(255,255,255,.04),0 16px 48px rgba(0,0,0,.6),inset 0 0 50px rgba(0,0,0,.35);
 }
+
 /* 刻度 */
-.tick{
-  position:absolute;
-  left:50%;
-  background:rgba(255,255,255,.5);
-}
+.tick{position:absolute;left:50%;background:rgba(255,255,255,.5)}
 .tick.major{
   top:4%;height:5%;width:2.5px;margin-left:-1.25px;
   background:rgba(255,255,255,.85);border-radius:1px;
@@ -141,105 +155,78 @@ body{
   background:rgba(255,255,255,.22);
   transform-origin:50% 1840%;
 }
+
 /* 数字 */
 .hour-num{
   position:absolute;
-  font-size:min(4.2vh,21px);font-weight:600;
+  font-size:clamp(14px,3.5vh,22px);font-weight:600;
   color:rgba(255,255,255,.88);
   text-align:center;
   width:30px;height:30px;line-height:30px;
   transform:translate(-50%,-50%);
 }
-/* 指针容器 */
-.hands-container{
-  position:absolute;inset:0;
-}
+
 /* 指针 */
+.hands-container{position:absolute;inset:0}
 .hand{
   position:absolute;bottom:50%;left:50%;
-  transform-origin:50% 100%;
-  border-radius:2px;
+  transform-origin:50% 100%;border-radius:2px;
 }
 .hand-hour{
   width:5px;height:26%;
-  background:linear-gradient(to top,#d8d8d8 0%,#fff 100%);
-  margin-left:-2.5px;
-  z-index:4;
-  border-radius:3px;
+  background:linear-gradient(to top,#d8d8d8,#fff);
+  margin-left:-2.5px;z-index:4;border-radius:3px;
   box-shadow:0 2px 10px rgba(0,0,0,.7);
 }
 .hand-min{
   width:3.5px;height:36%;
-  background:linear-gradient(to top,#c8c8c8 0%,#fff 100%);
-  margin-left:-1.75px;
-  z-index:5;
-  border-radius:2px;
+  background:linear-gradient(to top,#c8c8c8,#fff);
+  margin-left:-1.75px;z-index:5;border-radius:2px;
   box-shadow:0 2px 10px rgba(0,0,0,.7);
 }
 .hand-sec{
   width:1.5px;height:42%;
-  background:#ff9f0a;
-  margin-left:-0.75px;
-  z-index:6;
+  background:#ff9f0a;margin-left:-0.75px;z-index:6;
   box-shadow:0 0 8px rgba(255,159,10,.5);
 }
 .hand-sec::after{
   content:'';position:absolute;bottom:-18%;left:50%;
-  transform:translateX(-50%);
-  width:1.5px;height:18%;
-  background:#ff9f0a;
-  border-radius:1px;
+  transform:translateX(-50%);width:1.5px;height:18%;
+  background:#ff9f0a;border-radius:1px;
 }
 .center-dot{
   position:absolute;top:50%;left:50%;
   width:12px;height:12px;border-radius:50%;
-  background:radial-gradient(circle,#ffb347 0%,#ff9f0a 100%);
-  transform:translate(-50%,-50%);
-  z-index:7;
+  background:radial-gradient(circle,#ffb347,#ff9f0a);
+  transform:translate(-50%,-50%);z-index:7;
   box-shadow:0 0 10px rgba(255,159,10,.6);
 }
 .center-dot-inner{
   position:absolute;top:50%;left:50%;
   width:4px;height:4px;border-radius:50%;
   background:#1a1a1a;
-  transform:translate(-50%,-50%);
-  z-index:8;
+  transform:translate(-50%,-50%);z-index:8;
 }
 
 /* -- 日历面板 -- */
 .calendar-panel{
-  width:min(42vh,280px);flex-shrink:0;
-  height:calc(100% - 32px);
+  width:clamp(200px,35vh,300px);flex-shrink:0;
   display:flex;flex-direction:column;
-  border-radius:26px;
-  background:linear-gradient(145deg,rgba(28,30,38,.95) 0%,rgba(16,18,22,.98) 100%);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 8px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
-  overflow:hidden;
-  padding:18px 16px;
+  padding:16px 14px;
 }
 .cal-header{
   display:flex;align-items:baseline;gap:8px;
-  margin-bottom:12px;padding:0 2px;
+  margin-bottom:10px;padding:0 2px;
 }
-.cal-month{
-  font-size:min(4vh,24px);font-weight:700;
-  color:#ff9f0a;
-}
-.cal-lunar{
-  font-size:min(2.2vh,13px);font-weight:400;
-  color:rgba(255,255,255,.3);
-}
+.cal-month{font-size:clamp(18px,3.8vh,26px);font-weight:700;color:#ff9f0a}
+.cal-lunar{font-size:clamp(11px,2vh,14px);font-weight:400;color:rgba(255,255,255,.3)}
 .cal-weekdays{
   display:grid;grid-template-columns:repeat(7,1fr);
-  text-align:center;
-  margin-bottom:6px;
+  text-align:center;margin-bottom:4px;
 }
 .cal-wd{
-  font-size:min(1.8vh,11px);font-weight:600;
-  color:rgba(255,255,255,.35);
-  padding:3px 0;
-  text-transform:uppercase;
+  font-size:clamp(9px,1.6vh,12px);font-weight:600;
+  color:rgba(255,255,255,.35);padding:2px 0;
 }
 .cal-days{
   display:grid;grid-template-columns:repeat(7,1fr);
@@ -247,15 +234,13 @@ body{
   flex:1;align-content:start;
 }
 .cal-day{
-  font-size:min(2.4vh,15px);font-weight:400;
+  font-size:clamp(12px,2.2vh,16px);font-weight:400;
   color:rgba(255,255,255,.6);
-  padding:2px 0;
   border-radius:50%;
-  line-height:min(4.2vh,28px);
-  width:min(4.2vh,28px);height:min(4.2vh,28px);
+  width:clamp(22px,3.8vh,30px);height:clamp(22px,3.8vh,30px);
+  line-height:clamp(22px,3.8vh,30px);
   margin:1px auto;
   display:flex;align-items:center;justify-content:center;
-  transition:background .2s;
 }
 .cal-day.other{color:rgba(255,255,255,.15)}
 .cal-day.today{
@@ -264,64 +249,52 @@ body{
 }
 .cal-day.weekend{color:rgba(255,255,255,.3)}
 
-/* ===== 第二页：数字时钟 + 闹钟 ===== */
+/* ========== 第二页：数字时钟 + 闹钟 ========== */
 
-/* === 左侧：时钟 === */
+/* 左侧：数字时钟 */
 .clock-panel{
-  flex:1;display:flex;flex-direction:column;
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  height:calc(100% - 32px);
-  border-radius:26px;
-  background:linear-gradient(145deg,rgba(28,30,38,.95) 0%,rgba(16,18,22,.98) 100%);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 8px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
-  position:relative;overflow:hidden;
-  min-width:0;
-}
-
-.clock-time{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  font-size:min(20vw, 172px);
-  font-weight:200;
-  letter-spacing:-4px;
-  line-height:1;
-  font-variant-numeric:tabular-nums;
-  color:#fff;
-  text-align:center;
   position:relative;
-  padding-right:min(8vw,64px);
+}
+.clock-time{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:clamp(60px,18vw,180px);
+  font-weight:200;letter-spacing:-4px;line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:#fff;text-align:center;
+  position:relative;
+  padding-right:clamp(24px,6vw,64px);
   text-shadow:0 0 40px rgba(255,255,255,.06);
 }
 .clock-hm{display:inline-block}
 .clock-colon{opacity:.4;animation:colon-blink 2s ease-in-out infinite}
 @keyframes colon-blink{0%,100%{opacity:.4}50%{opacity:.15}}
 .clock-sec{
-  position:absolute;top:0.12em;right:0;
-  font-size:min(4vw, 32px);font-weight:300;
-  color:rgba(255,255,255,.18);line-height:1;
-  letter-spacing:0;
+  position:absolute;top:.12em;right:0;
+  font-size:clamp(14px,3vw,32px);font-weight:300;
+  color:rgba(255,255,255,.18);line-height:1;letter-spacing:0;
 }
 .clock-date{
-  font-size:min(4vw, 26px);font-weight:500;
+  font-size:clamp(14px,3.2vw,26px);font-weight:500;
   color:rgba(255,255,255,.5);
-  margin-top:14px;letter-spacing:2px;text-align:center;
+  margin-top:12px;letter-spacing:2px;text-align:center;
 }
 .clock-weather{
   display:flex;align-items:center;justify-content:center;
-  gap:min(2.5vw, 16px);margin-top:8px;
-  font-size:min(2.6vw, 15px);font-weight:400;
-  color:rgba(255,255,255,.22);letter-spacing:0.5px;
+  gap:clamp(8px,2vw,16px);margin-top:8px;
+  font-size:clamp(11px,2.2vw,15px);font-weight:400;
+  color:rgba(255,255,255,.22);letter-spacing:.5px;
 }
 .clock-weather .w-item{display:flex;align-items:center;gap:4px}
-.clock-weather .w-icon{font-size:min(2.8vw, 16px);opacity:.7}
+.clock-weather .w-icon{font-size:clamp(12px,2.4vw,16px);opacity:.7}
 
 .status-bar{
-  position:absolute;bottom:10px;left:0;right:0;
+  position:absolute;bottom:8px;left:0;right:0;
   display:flex;align-items:center;justify-content:center;gap:6px;
   font-size:10px;color:rgba(255,255,255,.15);
-  letter-spacing:0.5px;font-weight:400;line-height:1.4;
+  letter-spacing:.5px;font-weight:400;line-height:1.4;
 }
 .face-dot{
   width:6px;height:6px;border-radius:50%;
@@ -331,21 +304,14 @@ body{
 }
 .face-dot.on{opacity:1}
 
-/* === 右侧：闹钟 === */
+/* 右侧：闹钟 */
 .alarm-panel{
-  width:280px;flex-shrink:0;
-  height:calc(100% - 32px);
+  width:clamp(220px,30vw,300px);flex-shrink:0;
   display:flex;flex-direction:column;
-  border-radius:26px;
-  background:linear-gradient(145deg,rgba(28,30,38,.95) 0%,rgba(16,18,22,.98) 100%);
-  border:1px solid rgba(255,255,255,.08);
-  box-shadow:0 8px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.04);
-  overflow:hidden;
 }
 
-/* 闹钟头部 */
 .alarm-head{
-  padding:14px 18px 12px;
+  padding:12px 16px 10px;
   display:flex;align-items:center;gap:8px;
   border-bottom:1px solid rgba(255,255,255,.06);
   flex-shrink:0;
@@ -353,49 +319,46 @@ body{
 .alarm-head-icon{font-size:18px}
 .alarm-head-title{font-size:16px;font-weight:600;color:rgba(255,255,255,.5)}
 
-/* 设定模式 */
+/* 闹钟设定 */
 .alarm-set{
   flex:1;display:flex;flex-direction:column;
-  padding:12px;gap:8px;overflow-y:auto;
+  padding:10px;gap:7px;overflow-y:auto;
   -webkit-overflow-scrolling:touch;
 }
 .alarm-set.off{display:none}
 
 .q-btn{
   display:flex;align-items:center;justify-content:space-between;
-  padding:13px 15px;
+  padding:11px 13px;
   background:rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.07);
   border-radius:14px;cursor:pointer;
   transition:all .18s ease;
+  -webkit-tap-highlight-color:transparent;
 }
-.q-btn:active{
-  transform:scale(.98);
-  background:rgba(255,159,10,.10);
-  border-color:rgba(255,159,10,.25);
-}
-.q-left{display:flex;align-items:center;gap:11px}
+.q-btn:active{transform:scale(.98);background:rgba(255,159,10,.10);border-color:rgba(255,159,10,.25)}
+.q-left{display:flex;align-items:center;gap:10px}
 .q-emoji{font-size:20px}
 .q-info{display:flex;flex-direction:column;gap:2px}
-.q-time{font-size:16px;font-weight:700;color:#fff}
+.q-time{font-size:15px;font-weight:700;color:#fff}
 .q-desc{font-size:11px;color:rgba(255,255,255,.3)}
 .q-arrow{font-size:15px;color:rgba(255,255,255,.18)}
 
-.divider{display:flex;align-items:center;gap:10px;padding:4px 0}
+.divider{display:flex;align-items:center;gap:10px;padding:3px 0}
 .divider-line{flex:1;height:1px;background:rgba(255,255,255,.06)}
 .divider-text{font-size:11px;color:rgba(255,255,255,.2)}
 
 .custom-box{
   background:rgba(255,255,255,.04);
   border:1px solid rgba(255,255,255,.06);
-  border-radius:14px;padding:12px;
+  border-radius:14px;padding:10px;
 }
 .custom-row{display:flex;align-items:center;gap:8px}
 .custom-input{
   flex:1;background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.08);
-  border-radius:10px;padding:10px 12px;
-  color:#fff;font-size:17px;font-weight:600;
+  border-radius:10px;padding:9px 12px;
+  color:#fff;font-size:16px;font-weight:600;
   text-align:center;outline:none;
   font-variant-numeric:tabular-nums;
   transition:border-color .2s;
@@ -404,19 +367,20 @@ body{
 .custom-input:focus{border-color:rgba(255,159,10,.45)}
 .custom-unit{font-size:13px;color:rgba(255,255,255,.3);white-space:nowrap}
 .custom-go{
-  margin-top:10px;width:100%;
+  margin-top:8px;width:100%;
   background:linear-gradient(135deg,#ff9f0a,#ff6723);
-  border:none;border-radius:12px;padding:11px;
+  border:none;border-radius:12px;padding:10px;
   color:#000;font-size:15px;font-weight:700;cursor:pointer;
   box-shadow:0 4px 16px rgba(255,159,10,.2);
+  -webkit-tap-highlight-color:transparent;
 }
 .custom-go:active{transform:scale(.97)}
 
-/* 倒计时模式 */
+/* 闹钟倒计时 */
 .alarm-run{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  padding:20px;position:relative;
+  padding:16px;position:relative;
 }
 .alarm-run.off{display:none}
 
@@ -425,7 +389,7 @@ body{
 .ar-label{font-size:12px;color:rgba(255,255,255,.3);letter-spacing:1px;margin-bottom:2px}
 .ar-target{font-size:16px;font-weight:600;color:#ff9f0a;margin-bottom:14px;font-variant-numeric:tabular-nums}
 .ar-countdown{
-  font-size:min(14vw, 64px);font-weight:700;color:#fff;
+  font-size:clamp(36px,12vw,64px);font-weight:700;color:#fff;
   font-variant-numeric:tabular-nums;
   letter-spacing:-1px;line-height:1;margin-bottom:4px;
   text-shadow:0 0 30px rgba(255,159,10,.12);
@@ -436,20 +400,19 @@ body{
   border:1px solid rgba(255,59,48,.15);
   border-radius:50px;padding:9px 28px;
   color:#ff453a;font-size:13px;font-weight:600;cursor:pointer;z-index:2;
+  -webkit-tap-highlight-color:transparent;
 }
 .ar-cancel:active{background:rgba(255,59,48,.2);transform:scale(.96)}
 
-/* 进度环 */
 .ring-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .ring-track{fill:none;stroke:rgba(255,255,255,.04);stroke-width:3}
 .ring-bar{
   fill:none;stroke:#ff9f0a;stroke-width:3;
-  stroke-linecap:round;
-  transition:stroke-dashoffset 1s linear;
+  stroke-linecap:round;transition:stroke-dashoffset 1s linear;
   filter:drop-shadow(0 0 6px rgba(255,159,10,.3));
 }
 
-/* === 闹钟弹窗 === */
+/* ========== 闹钟弹窗 ========== */
 .modal-bg{
   position:fixed;inset:0;background:rgba(0,0,0,.90);z-index:300;
   display:flex;align-items:center;justify-content:center;
@@ -468,58 +431,76 @@ body{
   border:none;border-radius:50px;padding:14px 48px;
   color:#000;font-size:18px;font-weight:700;cursor:pointer;
   box-shadow:0 4px 20px rgba(255,159,10,.3);
+  -webkit-tap-highlight-color:transparent;
 }
 .modal-btn:active{transform:scale(.96)}
 
-/* === 顶部栏 === */
+/* ========== 顶部栏 ========== */
 .topbar{
-  position:fixed;top:max(8px,env(safe-area-inset-top));
-  left:0;right:0;padding:0 max(14px,env(safe-area-inset-right));
-  display:flex;justify-content:space-between;align-items:center;
-  z-index:50;transition:opacity 3s;
+  position:fixed;
+  top:max(8px,env(safe-area-inset-top));
+  right:max(14px,env(safe-area-inset-right));
+  z-index:100;
+  transition:opacity 3s;
 }
-.topbar.fade{opacity:0}
+.topbar.fade{opacity:0;pointer-events:none}
 .gear{
-  background:rgba(255,255,255,.08);border:none;border-radius:50%;
-  width:32px;height:32px;color:rgba(255,255,255,.35);font-size:16px;
+  background:rgba(255,255,255,.1);border:none;border-radius:50%;
+  width:36px;height:36px;color:rgba(255,255,255,.4);font-size:18px;
   cursor:pointer;display:flex;align-items:center;justify-content:center;
   backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  transition:background .2s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
 }
-.gear:active{background:rgba(255,255,255,.15)}
+.gear:active{background:rgba(255,255,255,.2)}
 
-/* === 设置面板 === */
+/* ========== 设置面板 ========== */
 #settings{
-  position:fixed;inset:0;background:rgba(0,0,0,.94);
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.96);
   backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);
-  z-index:200;display:flex;flex-direction:column;
-  padding:max(48px,env(safe-area-inset-top)+10px) 20px 36px;
+  z-index:200;
+  display:flex;flex-direction:column;
+  padding:max(20px,env(safe-area-inset-top)) 20px 36px;
   overflow-y:auto;-webkit-overflow-scrolling:touch;
-  transform:translateY(100%);transition:transform .4s cubic-bezier(.32,.72,0,1);
+  transform:translateY(100%);
+  transition:transform .4s cubic-bezier(.32,.72,0,1);
+  pointer-events:none;
 }
-#settings.open{transform:translateY(0)}
+#settings.open{
+  transform:translateY(0);
+  pointer-events:auto;
+}
+
 .s-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .s-title{font-size:22px;font-weight:700}
 .s-close{
   background:rgba(255,255,255,.1);border:none;border-radius:50%;
-  width:30px;height:30px;color:#fff;font-size:14px;
+  width:32px;height:32px;color:#fff;font-size:15px;
   cursor:pointer;display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
 }
 .s-grp{margin-bottom:16px}
-.s-label{font-size:11px;font-weight:600;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;padding-left:4px}
+.s-label{
+  font-size:11px;font-weight:600;color:rgba(255,255,255,.3);
+  text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;padding-left:4px;
+}
 .s-row{
   display:flex;justify-content:space-between;align-items:center;
-  padding:11px 13px;background:rgba(255,255,255,.05);margin-bottom:1px;
+  padding:12px 14px;background:rgba(255,255,255,.05);margin-bottom:1px;
 }
-.s-row:first-of-type{border-radius:10px 10px 2px 2px}
-.s-row:last-of-type{border-radius:2px 2px 10px 10px;margin-bottom:0}
-.s-row:only-of-type{border-radius:10px}
+.s-row:first-of-type{border-radius:12px 12px 2px 2px}
+.s-row:last-of-type{border-radius:2px 2px 12px 12px;margin-bottom:0}
+.s-row:only-of-type{border-radius:12px}
 .s-row-t{font-size:14px;font-weight:500}
 .s-row-d{font-size:11px;color:rgba(255,255,255,.3);margin-top:1px}
+
+/* 开关 */
 .sw{
   position:relative;width:48px;height:28px;
   background:#39393d;border-radius:14px;
   cursor:pointer;transition:background .3s;flex-shrink:0;
+  -webkit-tap-highlight-color:transparent;
 }
 .sw.on{background:#30d158}
 .sw::after{
@@ -530,14 +511,7 @@ body{
 }
 .sw.on::after{transform:translateX(20px)}
 
-/* === 调暗 === */
-#dim{
-  position:fixed;inset:0;background:#000;opacity:0;
-  z-index:100;pointer-events:none;transition:opacity 1.2s ease;
-}
-#dim.on{opacity:.6}
-
-/* === 摄像头定时器控件 === */
+/* 摄像头定时器 */
 .cam-timer-ctrl{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .ct-btn{
   width:30px;height:30px;border-radius:50%;border:none;
@@ -546,70 +520,25 @@ body{
   justify-content:center;-webkit-tap-highlight-color:transparent;
 }
 .ct-btn:active{background:rgba(255,255,255,.25)}
-.ct-val{
-  min-width:36px;text-align:center;font-size:14px;font-weight:600;
-  color:#30d158;font-variant-numeric:tabular-nums;
-}
+.ct-val{min-width:36px;text-align:center;font-size:14px;font-weight:600;color:#30d158;font-variant-numeric:tabular-nums}
 .ct-val.off{color:rgba(255,255,255,.3)}
-.ct-countdown{color:#ff9f0a;font-size:11px;margin-top:2px}
 
-/* === 强制横屏 === */
-@media screen and (orientation:portrait){
-  html{
-    transform:rotate(90deg);
-    transform-origin:top left;
-    width:100vh;height:100vw;
-    overflow:hidden;
-    position:absolute;
-    top:0;left:100vw;
-  }
-  body{
-    width:100%;height:100%;
-  }
+/* ========== 调暗遮罩 ========== */
+#dim{
+  position:fixed;inset:0;background:#000;opacity:0;
+  z-index:90;pointer-events:none;transition:opacity 1.2s ease;
+}
+#dim.on{opacity:.6}
+
+/* ========== 防息屏视频 ========== */
+#nosleep-vid,#face-vid{
+  position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:.01;
 }
 
-/* 小屏适配 */
-@media screen and (max-height:420px){
-  .page{padding:10px;gap:10px}
-  .alarm-panel{width:220px}
-  .alarm-set{padding:8px;gap:5px}
-  .q-btn{padding:10px 12px}
-  .q-emoji{font-size:17px}
-  .q-time{font-size:14px}
-  .q-desc{font-size:10px}
-  .alarm-head{padding:10px 14px 8px}
-  .alarm-head-title{font-size:14px}
-  .ar-countdown{font-size:min(11vw,48px)}
-  .analog-clock{width:min(60vh,260px);height:min(60vh,260px)}
-  .calendar-panel{width:min(36vh,240px);padding:12px 10px}
-  .cal-month{font-size:min(3.5vh,20px)}
-  .hour-num{font-size:min(3.5vh,18px)}
-  .clock-time{font-size:min(17vw,130px)}
-  .custom-box{padding:8px}
-  .custom-input{padding:8px 10px;font-size:15px}
-  .custom-go{padding:9px;font-size:14px}
-  .divider{padding:2px 0}
-}
-
-/* 超大屏适配 */
-@media screen and (min-height:700px){
-  .analog-clock{width:min(75vh,380px);height:min(75vh,380px)}
-  .calendar-panel{width:min(45vh,320px);padding:22px 20px}
-  .hour-num{font-size:min(4.5vh,24px)}
-  .cal-day{font-size:min(2.6vh,17px);width:min(4.5vh,32px);height:min(4.5vh,32px);line-height:min(4.5vh,32px)}
-  .cal-month{font-size:min(4.5vh,28px)}
-  .clock-time{font-size:min(22vw,200px)}
-  .alarm-panel{width:320px}
-}
-
-/* 隐藏视频 */
-#face-vid{position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0}
-
-/* 夜间模式 */
-body.night *{filter:none}
+/* ========== 夜间模式 ========== */
 body.night #app{filter:sepia(1) hue-rotate(-30deg) saturate(3) brightness(.5)}
 
-/* 低电量 */
+/* ========== 低电量模式 ========== */
 body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
 </style>
 </head>
@@ -632,20 +561,18 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
 
 <!-- 主应用 -->
 <div id="app">
+  <!-- 顶部设置按钮 -->
   <div class="topbar" id="topbar">
     <button class="gear" id="gearBtn">⚙</button>
   </div>
 
-  <!-- 页面滑动容器 -->
+  <!-- 页面容器 -->
   <div class="pages" id="pages">
-    <!-- ===== 第一页：模拟时钟 + 日历 ===== -->
+    <!-- 第一页：模拟时钟 + 日历 -->
     <div class="page" id="page1">
-      <!-- 模拟时钟 -->
-      <div class="analog-panel">
+      <div class="analog-panel panel">
         <div class="analog-clock" id="analogClock">
-          <div class="analog-face" id="analogFace">
-            <!-- 刻度和数字由JS生成 -->
-          </div>
+          <div class="analog-face" id="analogFace"></div>
           <div class="hands-container">
             <div class="hand hand-hour" id="handHour"></div>
             <div class="hand hand-min" id="handMin"></div>
@@ -655,12 +582,10 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
           </div>
         </div>
       </div>
-
-      <!-- 日历 -->
-      <div class="calendar-panel" id="calendarPanel">
+      <div class="calendar-panel panel" id="calendarPanel">
         <div class="cal-header">
           <span class="cal-month" id="calMonth">3月</span>
-          <span class="cal-lunar" id="calLunar">二月初三</span>
+          <span class="cal-lunar" id="calLunar"></span>
         </div>
         <div class="cal-weekdays">
           <span class="cal-wd">日</span><span class="cal-wd">一</span><span class="cal-wd">二</span>
@@ -671,14 +596,13 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
       </div>
     </div>
 
-    <!-- ===== 第二页：数字时钟 + 闹钟 ===== -->
+    <!-- 第二页：数字时钟 + 闹钟 -->
     <div class="page" id="page2">
-      <!-- 左侧：时钟 -->
-      <div class="clock-panel" id="clockPanel">
+      <div class="clock-panel panel" id="clockPanel">
         <div class="clock-time" id="clockTime">
           <span class="clock-hm">00<span class="clock-colon">:</span>00</span><span class="clock-sec">00</span>
         </div>
-        <div class="clock-date" id="clockDate">星期日 · 3月15日</div>
+        <div class="clock-date" id="clockDate"></div>
         <div class="clock-weather" id="clockWeather">
           <span class="w-item"><span class="w-icon">🌡</span><span id="wTemp">--°</span></span>
           <span class="w-item"><span class="w-icon">💧</span><span id="wHumi">--%</span></span>
@@ -686,15 +610,11 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
         </div>
         <div class="status-bar" id="statusBar"><span class="face-dot" id="faceDot"></span><span id="statusText"></span></div>
       </div>
-
-      <!-- 右侧：闹钟 -->
-      <div class="alarm-panel">
+      <div class="alarm-panel panel">
         <div class="alarm-head">
           <span class="alarm-head-icon">⏰</span>
           <span class="alarm-head-title">闹钟</span>
         </div>
-
-        <!-- 设定模式 -->
         <div class="alarm-set" id="alarmSet">
           <div class="q-btn" onclick="SA(5)">
             <div class="q-left"><span class="q-emoji">⚡</span><div class="q-info"><span class="q-time">5 分钟</span><span class="q-desc">快速小憩</span></div></div>
@@ -712,23 +632,19 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
             <div class="q-left"><span class="q-emoji">🛏️</span><div class="q-info"><span class="q-time">60 分钟</span><span class="q-desc">深度休息</span></div></div>
             <span class="q-arrow">›</span>
           </div>
-
           <div class="divider">
             <div class="divider-line"></div>
             <span class="divider-text">自定义</span>
             <div class="divider-line"></div>
           </div>
-
           <div class="custom-box">
             <div class="custom-row">
-              <input type="number" class="custom-input" id="cInput" placeholder="输入分钟" min="1" max="999">
+              <input type="number" class="custom-input" id="cInput" placeholder="输入分钟" min="1" max="999" inputmode="numeric">
               <span class="custom-unit">分钟</span>
             </div>
             <button class="custom-go" onclick="SC()">设定闹钟</button>
           </div>
         </div>
-
-        <!-- 倒计时模式 -->
         <div class="alarm-run off" id="alarmRun">
           <svg class="ring-svg" viewBox="0 0 300 300" id="ringSvg">
             <circle class="ring-track" cx="150" cy="150" r="140"/>
@@ -764,21 +680,21 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
   </div>
   <div class="s-grp">
     <div class="s-label">💡 屏幕</div>
-    <div class="s-row" style="border-radius:10px">
-      <div><div class="s-row-t">触屏亮度策略</div><div class="s-row-d">触屏后亮屏20分钟 → 微暗20分钟 → 释放常亮，由 iOS 自动息屏</div></div>
+    <div class="s-row" style="border-radius:12px">
+      <div><div class="s-row-t">触屏亮度策略</div><div class="s-row-d">触屏后亮屏20分钟 → 微暗20分钟 → 释放常亮</div></div>
       <span style="font-size:13px;color:rgba(255,255,255,.3);font-weight:500">默认开启</span>
     </div>
   </div>
   <div class="s-grp">
     <div class="s-label">👁️ 注视感知（可选）</div>
     <div class="s-row">
-      <div><div class="s-row-t">人眼注视感知</div><div class="s-row-d">看一眼亮屏5分钟，需要摄像头权限，较耗电</div></div>
+      <div><div class="s-row-t">人眼注视感知</div><div class="s-row-d">看一眼亮屏5分钟，需要摄像头权限</div></div>
       <div class="sw" id="swAttn" onclick="tAttn()"></div>
     </div>
     <div class="s-row" id="camTimerRow" style="display:none">
       <div style="flex:1">
         <div class="s-row-t">运行时长</div>
-        <div class="s-row-d" id="camTimerDesc">到时关闭摄像头，交由系统自动息屏</div>
+        <div class="s-row-d" id="camTimerDesc">到时关闭摄像头</div>
       </div>
       <div class="cam-timer-ctrl">
         <button class="ct-btn" onclick="adjCamTimer(-1)">−</button>
@@ -813,1015 +729,967 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
   </div>
 </div>
 
-<!-- 隐藏视频 -->
+<!-- 防息屏视频（iOS需要） -->
+<video id="nosleep-vid" playsinline loop muted></video>
+<!-- 人脸检测视频 -->
 <video id="face-vid" autoplay playsinline></video>
 
 <script>
+/* ================================================================
+ *  StandBy Mode - iOS 待机时钟 PWA
+ *  重写版：修复 iOS 息屏 / 布局 / 设置面板三大问题
+ * ================================================================ */
+
 // ====== 状态 ======
-let alarm=null, cdTimer=null, ringing=false;
-// 注视感知默认关闭（省电优先）
-let attnOn=localStorage.getItem('sb-attn')==='true';
-let nightOn=localStorage.getItem('sb-night')==='true';
-let lpOn=localStorage.getItem('sb-lp')==='true';
-let dimTm=null, clockTm=null, uiTm=null;
-let faceDetector=null,vidStream=null,faceInt=null;
-let isLooking=false,gazeTm=null,gazePaused=false;
-let screenOffTm=null, isScreenOff=false, lastFaceTime=Date.now();
-let gazeEndAt=0; // 注视暂停结束时间戳
-const GAZE_DUR=300000;       // 注视暂停5分钟
-const BRIGHT_DUR=1200000;    // 亮屏阶段 20 分钟
-const DIM_DUR=1200000;       // 微暗阶段 20 分钟
-let brightTm=null;           // 亮屏阶段 timer
-let brightEndAt=0;           // 亮屏阶段结束时间戳
-let dimEndAt=0;              // 微暗阶段结束时间戳
+let alarm = null, cdTimer = null, ringing = false;
+let attnOn = localStorage.getItem('sb-attn') === 'true';
+let nightOn = localStorage.getItem('sb-night') === 'true';
+let lpOn = localStorage.getItem('sb-lp') === 'true';
+let clockTm = null, uiTm = null;
+let faceDetector = null, vidStream = null, faceInt = null;
+let isLooking = false, gazeTm = null, gazePaused = false;
+let isScreenOff = false, lastFaceTime = Date.now();
+let gazeEndAt = 0;
 
 // 页面切换
-let currentPage=0;
-const TOTAL_PAGES=2;
+let currentPage = 0;
+const TOTAL_PAGES = 2;
 
-// 摄像头定时关闭（0=常驻不自动关）
-let camTimerHrs=0;      // 用户设置的小时数
-let camTimerEndAt=0;     // 定时结束时间戳
-let camTimerTm=null;     // setTimeout id
-const CAM_TIMER_OPTIONS=[0,1,2,3,4,6,8]; // 可选小时数（0=常驻）
+// 常量
+const GAZE_DUR = 300000;       // 注视暂停 5 分钟
+const BRIGHT_DUR = 1200000;    // 亮屏 20 分钟
+const DIM_DUR = 1200000;       // 微暗 20 分钟
+const CIRC = 2 * Math.PI * 140;
 
-// 检测频率（毫秒）——分场景降低频率省电
-const FACE_INTERVAL_NORMAL=3000;    // 正常状态：3秒一次（从2s降到3s）
-const FACE_INTERVAL_LOWPOW=5000;    // 低电量：5秒一次
-const MOTION_INTERVAL_NORMAL=3000;  // 运动检测正常：3秒一次
-const MOTION_INTERVAL_LOWPOW=5000;  // 运动检测低电量：5秒一次
-const CIRC=2*Math.PI*140;
+// 屏幕状态
+let screenState = 'bright';
+let brightTm = null, brightEndAt = 0;
+let dimTm = null, dimEndAt = 0;
 
-const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-const isSA=window.navigator.standalone===true||window.matchMedia('(display-mode:standalone)').matches;
+// 摄像头定时
+let camTimerHrs = 0, camTimerEndAt = 0, camTimerTm = null;
+const CAM_TIMER_OPTIONS = [0, 1, 2, 3, 4, 6, 8];
 
-// ====== 初始化 ======
-document.addEventListener('DOMContentLoaded',()=>{
-  if(nightOn){document.getElementById('swNight').classList.add('on');document.body.classList.add('night')}
-  if(lpOn){document.getElementById('swLP').classList.add('on');document.body.classList.add('lowpow')}
-  if(attnOn)document.getElementById('swAttn').classList.add('on');
-  else document.getElementById('swAttn').classList.remove('on');
-  showCamTimerRow(attnOn);updateCamTimerUI();
-  if(isSA)skipGuide();
-  buildAnalogFace();
-  buildCalendar();
-  tick();tickAnalog();startClock();
-  document.getElementById('startBtn').onclick=launch;
-  document.getElementById('gearBtn').onclick=()=>document.getElementById('settings').classList.add('open');
-  document.getElementById('closeS').onclick=()=>document.getElementById('settings').classList.remove('open');
-  document.getElementById('cInput').onkeydown=e=>{if(e.key==='Enter')SC()};
-  setupPageSwipe();fadeUI();
-  document.addEventListener('touchstart',(e)=>{
-    unlockAudio();
-    // 在设置面板/闹钟操作区/弹窗内的触摸不重置息屏流程
-    if(e.target.closest('#settings')||e.target.closest('.alarm-set')||e.target.closest('.custom-box')||e.target.closest('#modal')){
-      fadeUI();return;
+// 检测频率
+const FACE_INTERVAL = 3000;
+const FACE_INTERVAL_LP = 5000;
+
+// 平台检测
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+const isSA = window.navigator.standalone === true || window.matchMedia('(display-mode:standalone)').matches;
+
+// ====== 防息屏核心（iOS专属强化） ======
+let wakeLock = null;
+let _noSleepVideo = null;
+let _noSleepAudioCtx = null;
+let _noSleepInterval = null;
+
+/**
+ * 创建并启动 NoSleep 视频（iOS Safari 的关键防息屏手段）
+ * 原理：持续循环播放一个极小的 mp4 视频，iOS 会认为有媒体在播放而不息屏
+ */
+function startNoSleepVideo() {
+  if (_noSleepVideo) {
+    if (_noSleepVideo.paused) _noSleepVideo.play().catch(() => {});
+    return;
+  }
+  const v = document.getElementById('nosleep-vid');
+  if (!v) return;
+  // 极小的 H.264 base64 视频
+  v.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAFUWWIhAA3//728P4FNjuY0EcuAAVMAAAAB0AAAAN2n5gAAALDgAAAAMJYBAAFaagATEAAAAGBHhAAJoAAABgil0AAAO0IAABRgA+gAAAASkaQAADaAAAABjihAALmAAABa0AAALQAAAA1MBIAAAAEU/AAAM8YAA0RAAAAJQAAAAF1AAAAMKYAABNgAAADdAAAAG8AAAB7EAAAIoAAANAAAAKgAABXQAAAGoAAAAVYAAAC5gAAAGcAAAAhYAAAAvgAAAAfAAAADIAAAAIcAAAA6AAAACPAAAAA1AAAACB0AAAANUAAABegAAACrgAAAA/AAAAM0AAAAsYAAAAhwAAADLAAAALGAAAAIcAAABWAAAAYgAAABDAAAAO+AAAAUoAAAE+AAAAAEsAAAAKmAAAChAAAAA+AAAAi4AAAAPYAAAOcAAAC1gAAAAPQAAAAhQ==';
+  v.play().catch(() => {});
+  _noSleepVideo = v;
+  console.log('[NoSleep] 视频已启动');
+}
+
+/**
+ * 静音音频心跳（双保险）
+ * 每 15 秒播放一个极短的静音音频片段，防止 iOS 暂停视频
+ */
+function startNoSleepAudio() {
+  if (_noSleepInterval) return;
+  try {
+    _noSleepAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) { return; }
+
+  _noSleepInterval = setInterval(() => {
+    if (!_noSleepAudioCtx) return;
+    if (_noSleepAudioCtx.state === 'suspended') {
+      _noSleepAudioCtx.resume().catch(() => {});
     }
-    wakeUp('touch');fadeUI();
-  },{passive:true});
-  document.addEventListener('touchmove',e=>{
-    if(e.target.closest('#settings')||e.target.closest('.alarm-set'))return;
-    // 不阻止页面滑动
-    if(e.target.closest('.pages'))return;
-    e.preventDefault();
-  },{passive:false});
-});
+    // 播放一个 0.01 秒的静音脉冲
+    try {
+      const osc = _noSleepAudioCtx.createOscillator();
+      const gain = _noSleepAudioCtx.createGain();
+      gain.gain.value = 0.001; // 近乎无声
+      osc.connect(gain);
+      gain.connect(_noSleepAudioCtx.destination);
+      osc.start();
+      osc.stop(_noSleepAudioCtx.currentTime + 0.01);
+    } catch (e) {}
 
-// ====== 启动 ======
-async function launch(){
-  // 用户交互时机：解锁音频
-  unlockAudio();
-  try{
-    const el=document.documentElement;
-    if(el.requestFullscreen)await el.requestFullscreen().catch(()=>{});
-    else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
-  }catch(e){}
-  reqWake();
-  const g=document.getElementById('guide');
-  g.classList.add('hide');
-  document.getElementById('app').classList.add('show');
-  setTimeout(()=>g.classList.add('gone'),500);
-  if(attnOn)startFace();
-  startWeather();
-  startBrightTimer(); // 进入亮屏20分钟阶段
-  tickAnalog();
-  updateStatus();
-}
-function skipGuide(){
-  document.getElementById('guide').classList.add('gone');
-  document.getElementById('app').classList.add('show');
-  reqWake();
-  if(attnOn)setTimeout(startFace,400);
-  startWeather();
-  startBrightTimer(); // 进入亮屏20分钟阶段
-  tickAnalog();
-  setTimeout(updateStatus,500);
+    // 同时确保视频在播放
+    if (_noSleepVideo && _noSleepVideo.paused) {
+      _noSleepVideo.play().catch(() => {});
+    }
+  }, 15000);
+  console.log('[NoSleep] 音频心跳已启动');
 }
 
-// ====== 屏幕常亮 ======
-let wakeLock=null,noSleep=null;
-async function reqWake(){
-  // 优先 Wake Lock API（iOS 16.4+ Safari 支持）
-  try{
-    if('wakeLock' in navigator){
-      wakeLock=await navigator.wakeLock.request('screen');
-      // iOS Safari 可能在后台释放 Wake Lock，监听重新请求
-      wakeLock.addEventListener('release',async()=>{
-        console.log('[Wake] Wake Lock 被系统释放');
-        wakeLock=null;
-        // 如果还在亮屏或微暗阶段，立即重新请求
-        if(!isScreenOff && document.visibilityState==='visible'){
-          try{wakeLock=await navigator.wakeLock.request('screen')}catch(e){}
+/**
+ * 请求屏幕常亮（多重保障）
+ */
+async function reqWake() {
+  // 方案1：Wake Lock API（iOS 16.4+）
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+        if (!isScreenOff && document.visibilityState === 'visible') {
+          navigator.wakeLock.request('screen').then(wl => { wakeLock = wl; }).catch(() => {});
         }
       });
       console.log('[Wake] Wake Lock API 已获取');
-      return;
     }
-  }catch(e){console.log('[Wake] Wake Lock API 失败:',e.message)}
-  // Fallback: noSleep video hack（iOS Safari 不支持 Wake Lock 时）
-  ensureNoSleep();
-}
-function ensureNoSleep(){
-  if(noSleep){
-    // 确保 video 在播放（iOS 可能暂停它）
-    if(noSleep.paused){
-      noSleep.play().catch(()=>{});
-      console.log('[Wake] noSleep video 恢复播放');
-    }
-    return;
+  } catch (e) {
+    console.log('[Wake] Wake Lock API 不可用:', e.message);
   }
-  try{
-    noSleep=document.createElement('video');
-    noSleep.setAttribute('playsinline','');noSleep.setAttribute('loop','');noSleep.muted=true;
-    noSleep.style.cssText='position:fixed;top:-1px;left:-1px;width:1px;height:1px;opacity:.01';
-    noSleep.src='data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAFUWWIhAA3//728P4FNjuY0EcuAAVMAAAAB0AAAAN2n5gAAALDgAAAAMJYBAAFaagATEAAAAGBHhAAJoAAABgil0AAAO0IAABRgA+gAAAASkaQAADaAAAABjihAALmAAABa0AAALQAAAA1MBIAAAAEU/AAAM8YAA0RAAAAJQAAAAF1AAAAMKYAABNgAAADdAAAAG8AAAB7EAAAIoAAANAAAAKgAABXQAAAGoAAAAVYAAAC5gAAAGcAAAAhYAAAAvgAAAAfAAAADIAAAAIcAAAA6AAAACPAAAAA1AAAACB0AAAANUAAABegAAACrgAAAA/AAAAM0AAAAsYAAAAhwAAADLAAAALGAAAAIcAAABWAAAAYgAAABDAAAAO+AAAAUoAAAE+AAAAAEsAAAAKmAAAChAAAAA+AAAAi4AAAAPYAAAOcAAAC1gAAAAPQAAAAhQ==';
-    document.body.appendChild(noSleep);
-    noSleep.play().catch(()=>{});
-    console.log('[Wake] noSleep video hack 已启动');
-  }catch(e){}
+
+  // 方案2：NoSleep 视频（始终启动，作为 fallback）
+  startNoSleepVideo();
+
+  // 方案3：静音音频心跳
+  startNoSleepAudio();
 }
-function releaseWake(){
-  if(wakeLock){try{wakeLock.release()}catch(e){}wakeLock=null}
-  if(noSleep){try{noSleep.pause();noSleep.remove()}catch(e){}noSleep=null}
-  console.log('[Wake] 释放屏幕常亮，交由 iOS 系统自动息屏');
+
+function releaseWake() {
+  if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
+  if (_noSleepVideo) { try { _noSleepVideo.pause(); } catch (e) {} }
+  if (_noSleepInterval) { clearInterval(_noSleepInterval); _noSleepInterval = null; }
+  console.log('[Wake] 已释放屏幕常亮');
 }
-// iOS 定期检查常亮状态（每60秒），防止 video 被系统暂停导致意外息屏
-setInterval(()=>{
-  if(isScreenOff || document.visibilityState!=='visible')return;
-  if(!wakeLock && noSleep && noSleep.paused){
-    noSleep.play().catch(()=>{});
-    console.log('[Wake] 定期检查：noSleep video 已恢复');
-  }
-},60000);
-document.addEventListener('visibilitychange',async()=>{
-  if(document.visibilityState==='visible'){
-    const now=Date.now();
-    if(!isScreenOff){
-      if(dimEndAt>0 && now>=dimEndAt){
-        clearDimTimer();
-        enterScreenOff();
-      }else if(brightEndAt>0 && now>=brightEndAt){
-        clearBrightTimer();
-        enterDimPhase();
-      }else{
-        // 回到前台，确保常亮仍然生效
-        if(!wakeLock && !noSleep) await reqWake();
-        else if(!wakeLock && noSleep && noSleep.paused) noSleep.play().catch(()=>{});
-      }
+
+// 页面可见性变化时重新请求
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    if (!isScreenOff) {
+      // 检查亮度阶段是否过期
+      const now = Date.now();
+      if (dimEndAt > 0 && now >= dimEndAt) { clearDimTimer(); enterScreenOff(); }
+      else if (brightEndAt > 0 && now >= brightEndAt) { clearBrightTimer(); enterDimPhase(); }
+      else { reqWake(); }
     }
-    tick();startClock();
-  }else{
-    if(clockTm){clearInterval(clockTm);clockTm=null}
+    tick(); tickAnalog(); startClock();
+  } else {
+    if (clockTm) { clearInterval(clockTm); clockTm = null; }
   }
 });
 
+// ====== 音频解锁 ======
+let _audioUnlocked = false;
+function unlockAudio() {
+  if (_audioUnlocked) return;
+  _audioUnlocked = true;
+  // 确保 NoSleep AudioContext 也被解锁
+  if (_noSleepAudioCtx && _noSleepAudioCtx.state === 'suspended') {
+    _noSleepAudioCtx.resume().catch(() => {});
+  }
+  console.log('[Audio] 已解锁');
+}
+
+// ====== 初始化 ======
+document.addEventListener('DOMContentLoaded', () => {
+  // 恢复设置
+  if (nightOn) { document.getElementById('swNight').classList.add('on'); document.body.classList.add('night'); }
+  if (lpOn) { document.getElementById('swLP').classList.add('on'); document.body.classList.add('lowpow'); }
+  if (attnOn) document.getElementById('swAttn').classList.add('on');
+  showCamTimerRow(attnOn);
+  updateCamTimerUI();
+
+  // PWA 模式跳过引导
+  if (isSA) skipGuide();
+
+  // 构建UI
+  buildAnalogFace();
+  buildCalendar();
+  tick();
+  tickAnalog();
+  startClock();
+
+  // 事件绑定
+  document.getElementById('startBtn').addEventListener('click', launch);
+
+  // 设置按钮 — 用 click 事件 + stopPropagation 确保不被拦截
+  document.getElementById('gearBtn').addEventListener('click', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    document.getElementById('settings').classList.add('open');
+  });
+
+  document.getElementById('closeS').addEventListener('click', function(e) {
+    e.stopPropagation();
+    e.preventDefault();
+    document.getElementById('settings').classList.remove('open');
+  });
+
+  document.getElementById('cInput').addEventListener('keydown', e => { if (e.key === 'Enter') SC(); });
+
+  // 页面滑动
+  setupPageSwipe();
+  fadeUI();
+
+  // 全局触摸事件
+  document.addEventListener('touchstart', (e) => {
+    unlockAudio();
+    // 设置面板 / 闹钟操作 / 弹窗 内的触摸不触发唤醒
+    if (e.target.closest('#settings') || e.target.closest('.alarm-set') || e.target.closest('.custom-box') || e.target.closest('#modal')) {
+      fadeUI();
+      return;
+    }
+    // 设置按钮本身也不触发
+    if (e.target.closest('.gear')) {
+      fadeUI();
+      return;
+    }
+    wakeUp('touch');
+    fadeUI();
+  }, { passive: true });
+
+  // 阻止非必要滚动
+  document.addEventListener('touchmove', e => {
+    if (e.target.closest('#settings') || e.target.closest('.alarm-set')) return;
+    if (e.target.closest('.pages')) return;
+    e.preventDefault();
+  }, { passive: false });
+});
+
+// ====== 启动 ======
+async function launch() {
+  unlockAudio();
+  // 全屏
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen) await el.requestFullscreen().catch(() => {});
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  } catch (e) {}
+
+  reqWake();
+  const g = document.getElementById('guide');
+  g.classList.add('hide');
+  document.getElementById('app').classList.add('show');
+  setTimeout(() => g.classList.add('gone'), 500);
+  if (attnOn) startFace();
+  startWeather();
+  startBrightTimer();
+  tickAnalog();
+  updateStatus();
+}
+
+function skipGuide() {
+  document.getElementById('guide').classList.add('gone');
+  document.getElementById('app').classList.add('show');
+  reqWake();
+  if (attnOn) setTimeout(startFace, 400);
+  startWeather();
+  startBrightTimer();
+  tickAnalog();
+  setTimeout(updateStatus, 500);
+}
+
 // ====== 时钟 ======
-function getClockInterval(){
-  // 有闹钟倒计时运行中 → 每秒更新
-  if(cdTimer) return 1000;
-  // 低电量 → 30秒
-  if(lpOn) return 30000;
-  // 正常 → 1秒（模拟时钟秒针需要）
+function getClockInterval() {
+  if (cdTimer) return 1000;
+  if (lpOn) return 30000;
   return 1000;
 }
-function startClock(){
-  if(clockTm)clearInterval(clockTm);
-  clockTm=setInterval(()=>{tick();tickAnalog()},getClockInterval());
+
+function startClock() {
+  if (clockTm) clearInterval(clockTm);
+  clockTm = setInterval(() => { tick(); tickAnalog(); }, getClockInterval());
 }
-function tick(){
-  const n=new Date();
-  const h=String(n.getHours()).padStart(2,'0');
-  const m=String(n.getMinutes()).padStart(2,'0');
-  const s=String(n.getSeconds()).padStart(2,'0');
-  const WD=['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
-  const ds=`${WD[n.getDay()]} · ${n.getMonth()+1}月${n.getDate()}日`;
-  document.getElementById('clockTime').innerHTML=
+
+function tick() {
+  const n = new Date();
+  const h = String(n.getHours()).padStart(2, '0');
+  const m = String(n.getMinutes()).padStart(2, '0');
+  const s = String(n.getSeconds()).padStart(2, '0');
+  const WD = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  document.getElementById('clockTime').innerHTML =
     `<span class="clock-hm">${h}<span class="clock-colon">:</span>${m}</span><span class="clock-sec">${s}</span>`;
-  document.getElementById('clockDate').textContent=ds;
+  document.getElementById('clockDate').textContent = `${WD[n.getDay()]} · ${n.getMonth() + 1}月${n.getDate()}日`;
 }
 
 // ====== 模拟时钟 ======
-function buildAnalogFace(){
-  const face=document.getElementById('analogFace');
-  if(!face)return;
-  
-  // 生成刻度
-  for(let i=0;i<60;i++){
-    const isMajor=i%5===0;
-    const tick=document.createElement('div');
-    tick.className='tick '+(isMajor?'major':'minor');
-    tick.style.transform=`rotate(${i*6}deg)`;
-    face.appendChild(tick);
+function buildAnalogFace() {
+  const face = document.getElementById('analogFace');
+  if (!face) return;
+  // 刻度
+  for (let i = 0; i < 60; i++) {
+    const isMajor = i % 5 === 0;
+    const t = document.createElement('div');
+    t.className = 'tick ' + (isMajor ? 'major' : 'minor');
+    t.style.transform = `rotate(${i * 6}deg)`;
+    face.appendChild(t);
   }
-  // 生成数字
-  const nums=[12,1,2,3,4,5,6,7,8,9,10,11];
-  const r=38; // 数字距中心百分比
-  nums.forEach((n,i)=>{
-    const angle=(i*30-90)*Math.PI/180;
-    const x=50+r*Math.cos(angle);
-    const y=50+r*Math.sin(angle);
-    const el=document.createElement('div');
-    el.className='hour-num';
-    el.textContent=n;
-    el.style.left=x+'%';
-    el.style.top=y+'%';
+  // 数字
+  const nums = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  nums.forEach((n, i) => {
+    const angle = (i * 30 - 90) * Math.PI / 180;
+    const x = 50 + 38 * Math.cos(angle);
+    const y = 50 + 38 * Math.sin(angle);
+    const el = document.createElement('div');
+    el.className = 'hour-num';
+    el.textContent = n;
+    el.style.left = x + '%';
+    el.style.top = y + '%';
     face.appendChild(el);
   });
 }
 
-function tickAnalog(){
-  const n=new Date();
-  const h=n.getHours()%12,m=n.getMinutes(),s=n.getSeconds();
-  const hDeg=h*30+m*0.5;
-  const mDeg=m*6+s*0.1;
-  const sDeg=s*6;
-  const hEl=document.getElementById('handHour');
-  const mEl=document.getElementById('handMin');
-  const sEl=document.getElementById('handSec');
-  if(hEl)hEl.style.transform=`rotate(${hDeg}deg)`;
-  if(mEl)mEl.style.transform=`rotate(${mDeg}deg)`;
-  if(sEl)sEl.style.transform=`rotate(${sDeg}deg)`;
+function tickAnalog() {
+  const n = new Date();
+  const h = n.getHours() % 12, m = n.getMinutes(), s = n.getSeconds();
+  const hEl = document.getElementById('handHour');
+  const mEl = document.getElementById('handMin');
+  const sEl = document.getElementById('handSec');
+  if (hEl) hEl.style.transform = `rotate(${h * 30 + m * 0.5}deg)`;
+  if (mEl) mEl.style.transform = `rotate(${m * 6 + s * 0.1}deg)`;
+  if (sEl) sEl.style.transform = `rotate(${s * 6}deg)`;
 }
 
 // ====== 日历 ======
-function buildCalendar(){
-  const now=new Date();
-  const year=now.getFullYear(),month=now.getMonth();
-  const today=now.getDate();
-  
-  // 月份标题
-  const monthEl=document.getElementById('calMonth');
-  if(monthEl) monthEl.textContent=(month+1)+'月';
-  
-  // 农历
-  const lunarEl=document.getElementById('calLunar');
-  if(lunarEl) lunarEl.textContent=getLunarDate(now);
-  
-  // 日历网格
-  const container=document.getElementById('calDays');
-  if(!container)return;
-  container.innerHTML='';
-  
-  const firstDay=new Date(year,month,1).getDay(); // 本月1号星期几
-  const daysInMonth=new Date(year,month+1,0).getDate();
-  const daysInPrev=new Date(year,month,0).getDate();
-  
-  // 上月尾部
-  for(let i=firstDay-1;i>=0;i--){
-    const el=document.createElement('div');
-    el.className='cal-day other';
-    el.textContent=daysInPrev-i;
+function buildCalendar() {
+  const now = new Date();
+  const year = now.getFullYear(), month = now.getMonth(), today = now.getDate();
+
+  const monthEl = document.getElementById('calMonth');
+  if (monthEl) monthEl.textContent = (month + 1) + '月';
+
+  const lunarEl = document.getElementById('calLunar');
+  if (lunarEl) lunarEl.textContent = getLunarDate(now);
+
+  const container = document.getElementById('calDays');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const el = document.createElement('div');
+    el.className = 'cal-day other';
+    el.textContent = daysInPrev - i;
     container.appendChild(el);
   }
-  // 本月
-  for(let d=1;d<=daysInMonth;d++){
-    const el=document.createElement('div');
-    const dow=new Date(year,month,d).getDay();
-    let cls='cal-day';
-    if(d===today) cls+=' today';
-    else if(dow===0||dow===6) cls+=' weekend';
-    el.className=cls;
-    el.textContent=d;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const el = document.createElement('div');
+    const dow = new Date(year, month, d).getDay();
+    let cls = 'cal-day';
+    if (d === today) cls += ' today';
+    else if (dow === 0 || dow === 6) cls += ' weekend';
+    el.className = cls;
+    el.textContent = d;
     container.appendChild(el);
   }
-  // 下月头部（填满6行42格或到足够）
-  const totalCells=firstDay+daysInMonth;
-  const needRows=Math.ceil(totalCells/7);
-  const remaining=needRows*7-totalCells;
-  for(let d=1;d<=remaining;d++){
-    const el=document.createElement('div');
-    el.className='cal-day other';
-    el.textContent=d;
+  const totalCells = firstDay + daysInMonth;
+  const needRows = Math.ceil(totalCells / 7);
+  const remaining = needRows * 7 - totalCells;
+  for (let d = 1; d <= remaining; d++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day other';
+    el.textContent = d;
     container.appendChild(el);
   }
 }
 
-// 简易农历（查表法 - 主要年份）
-function getLunarDate(date){
-  // 简化版：显示月份+日期的中文表示
-  const lunarMonths=['正','二','三','四','五','六','七','八','九','十','冬','腊'];
-  const lunarDays=['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
-    '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
-    '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
-  
-  // 使用基于公历的近似农历计算
-  // 这里用简化算法：取2026年农历数据
-  const y=date.getFullYear(),m=date.getMonth()+1,d=date.getDate();
-  
-  // 2026年部分农历对照（简化）
-  // 春节：2026年2月17日 = 正月初一
-  // 这里用简单偏移算法
-  const springFestival=new Date(2026,1,17); // 2026年春节
-  const diff=Math.floor((date-springFestival)/(24*3600*1000));
-  
-  if(diff<0){
-    // 春节前，属于上一年腊月
-    const prevDiff=diff+30; // 腊月约30天
-    if(prevDiff>=0 && prevDiff<30){
-      return '腊月'+lunarDays[prevDiff];
-    }
-    return '腊月'+lunarDays[Math.max(0,29+diff)];
+function getLunarDate(date) {
+  const lunarMonths = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '冬', '腊'];
+  const lunarDays = ['初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+    '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+    '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'];
+
+  const springFestival = new Date(2026, 1, 17);
+  const diff = Math.floor((date - springFestival) / (24 * 3600 * 1000));
+
+  if (diff < 0) {
+    const prevDiff = diff + 30;
+    if (prevDiff >= 0 && prevDiff < 30) return '腊月' + lunarDays[prevDiff];
+    return '腊月' + lunarDays[Math.max(0, 29 + diff)];
   }
-  
-  // 简化：按每月29.5天算
-  const lunarMonthLengths=[30,29,30,29,30,29,30,29,30,29,30,29];
-  let remaining=diff;
-  let lunarM=0;
-  for(let i=0;i<12;i++){
-    if(remaining<lunarMonthLengths[i]){
-      lunarM=i;break;
-    }
-    remaining-=lunarMonthLengths[i];
-    lunarM=i+1;
+
+  const lunarMonthLengths = [30, 29, 30, 29, 30, 29, 30, 29, 30, 29, 30, 29];
+  let rem = diff, lunarM = 0;
+  for (let i = 0; i < 12; i++) {
+    if (rem < lunarMonthLengths[i]) { lunarM = i; break; }
+    rem -= lunarMonthLengths[i];
+    lunarM = i + 1;
   }
-  if(lunarM>=12)lunarM=11;
-  const lunarD=Math.min(remaining,29);
-  
-  return lunarMonths[lunarM]+'月'+lunarDays[lunarD];
+  if (lunarM >= 12) lunarM = 11;
+  return lunarMonths[lunarM] + '月' + lunarDays[Math.min(rem, 29)];
 }
 
 // ====== 页面滑动 ======
-function setupPageSwipe(){
-  const pages=document.getElementById('pages');
-  if(!pages)return;
-  let sx=0,sy=0,dx=0,moving=false,startTime=0;
-  
-  pages.addEventListener('touchstart',e=>{
-    if(e.target.closest('#settings')||e.target.closest('.alarm-set')||e.target.closest('.custom-box'))return;
-    sx=e.touches[0].clientX;
-    sy=e.touches[0].clientY;
-    dx=0;moving=true;startTime=Date.now();
+function setupPageSwipe() {
+  const pages = document.getElementById('pages');
+  if (!pages) return;
+  let sx = 0, sy = 0, dx = 0, moving = false, startTime = 0, isHorizontal = null;
+
+  pages.addEventListener('touchstart', e => {
+    if (e.target.closest('#settings') || e.target.closest('.alarm-set') || e.target.closest('.custom-box')) return;
+    if (e.target.closest('.gear')) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    dx = 0;
+    moving = true;
+    isHorizontal = null;
+    startTime = Date.now();
     pages.classList.add('no-anim');
-  },{passive:true});
-  
-  pages.addEventListener('touchmove',e=>{
-    if(!moving)return;
-    const x=e.touches[0].clientX;
-    const y=e.touches[0].clientY;
-    dx=x-sx;
-    const dy=y-sy;
-    // 判断是否水平滑动
-    if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>10){
-      e.preventDefault();
-      const base=-currentPage*50;
-      const pct=base+(dx/window.innerWidth)*50;
-      pages.style.transform=`translateX(${pct}%)`;
+  }, { passive: true });
+
+  pages.addEventListener('touchmove', e => {
+    if (!moving) return;
+    const x = e.touches[0].clientX;
+    const y = e.touches[0].clientY;
+    dx = x - sx;
+    const dy = y - sy;
+
+    // 首次判断滑动方向
+    if (isHorizontal === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      isHorizontal = Math.abs(dx) > Math.abs(dy);
     }
-  },{passive:false});
-  
-  pages.addEventListener('touchend',e=>{
-    if(!moving)return;
-    moving=false;
+
+    if (isHorizontal) {
+      e.preventDefault();
+      const base = -currentPage * 50;
+      const pct = base + (dx / window.innerWidth) * 50;
+      pages.style.transform = `translateX(${pct}%)`;
+    }
+  }, { passive: false });
+
+  pages.addEventListener('touchend', () => {
+    if (!moving) return;
+    moving = false;
     pages.classList.remove('no-anim');
-    const elapsed=Date.now()-startTime;
-    const velocity=Math.abs(dx)/elapsed;
-    
-    // 快速滑动 或 滑动超过30%
-    if(Math.abs(dx)>window.innerWidth*0.3 || (velocity>0.3 && Math.abs(dx)>30)){
-      if(dx<0 && currentPage<TOTAL_PAGES-1) currentPage++;
-      else if(dx>0 && currentPage>0) currentPage--;
+    const elapsed = Date.now() - startTime;
+    const velocity = Math.abs(dx) / elapsed;
+
+    if (isHorizontal && (Math.abs(dx) > window.innerWidth * 0.25 || (velocity > 0.3 && Math.abs(dx) > 30))) {
+      if (dx < 0 && currentPage < TOTAL_PAGES - 1) currentPage++;
+      else if (dx > 0 && currentPage > 0) currentPage--;
     }
     goToPage(currentPage);
-  },{passive:true});
+    isHorizontal = null;
+  }, { passive: true });
 }
 
-function goToPage(idx){
-  currentPage=idx;
-  const pages=document.getElementById('pages');
-  if(pages) pages.style.transform=`translateX(${-idx*50}%)`;
-  // 更新指示器
-  document.querySelectorAll('.page-dot').forEach((d,i)=>{
-    d.classList.toggle('active',i===idx);
-  });
+function goToPage(idx) {
+  currentPage = idx;
+  const pages = document.getElementById('pages');
+  if (pages) pages.style.transform = `translateX(${-idx * 50}%)`;
+  document.querySelectorAll('.page-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
 }
 
 // ====== 天气 ======
-let weatherTimer=null;
-const WEATHER_INTERVAL=3600000; // 60分钟刷新一次（从30分钟加大，省电）
+let weatherTimer = null;
 
-// 天气代码 → 图标 + 描述
-function weatherDesc(code){
-  if(code===0) return ['☀️','晴'];
-  if(code<=3) return ['⛅','多云'];
-  if(code<=48) return ['🌫','雾'];
-  if(code<=57) return ['🌦','毛毛雨'];
-  if(code<=67) return ['🌧','雨'];
-  if(code<=77) return ['🌨','雪'];
-  if(code<=82) return ['🌧','阵雨'];
-  if(code<=86) return ['🌨','阵雪'];
-  if(code>=95) return ['⛈','雷暴'];
-  return ['☁️','多云'];
+function weatherDesc(code) {
+  if (code === 0) return ['☀️', '晴'];
+  if (code <= 3) return ['⛅', '多云'];
+  if (code <= 48) return ['🌫', '雾'];
+  if (code <= 57) return ['🌦', '毛毛雨'];
+  if (code <= 67) return ['🌧', '雨'];
+  if (code <= 77) return ['🌨', '雪'];
+  if (code <= 82) return ['🌧', '阵雨'];
+  if (code <= 86) return ['🌨', '阵雪'];
+  if (code >= 95) return ['⛈', '雷暴'];
+  return ['☁️', '多云'];
 }
 
-async function fetchWeather(){
-  try{
-    // 先尝试定位
-    const pos=await new Promise((ok,no)=>{
-      navigator.geolocation.getCurrentPosition(ok,no,{timeout:8000,maximumAge:600000});
+async function fetchWeather() {
+  try {
+    const pos = await new Promise((ok, no) => {
+      navigator.geolocation.getCurrentPosition(ok, no, { timeout: 8000, maximumAge: 600000 });
     });
-    const lat=pos.coords.latitude.toFixed(2);
-    const lon=pos.coords.longitude.toFixed(2);
-    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto`;
-    const resp=await fetch(url);
-    const data=await resp.json();
-    const cur=data.current;
-    const temp=Math.round(cur.temperature_2m);
-    const humi=cur.relative_humidity_2m;
-    const [icon,desc]=weatherDesc(cur.weather_code);
-    document.getElementById('wTemp').textContent=temp+'°';
-    document.getElementById('wHumi').textContent=humi+'%';
-    document.getElementById('wCondIcon').textContent=icon;
-    document.getElementById('wCond').textContent=desc;
-    console.log('[Weather] 更新成功:',temp+'°',humi+'%',desc);
-  }catch(e){
-    console.log('[Weather] 获取失败:',e.message);
-    // 定位失败时尝试用 IP 定位（fallback）
-    try{
-      const resp=await fetch('https://api.open-meteo.com/v1/forecast?latitude=31.23&longitude=121.47&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto');
-      const data=await resp.json();
-      const cur=data.current;
-      const temp=Math.round(cur.temperature_2m);
-      const humi=cur.relative_humidity_2m;
-      const [icon,desc]=weatherDesc(cur.weather_code);
-      document.getElementById('wTemp').textContent=temp+'°';
-      document.getElementById('wHumi').textContent=humi+'%';
-      document.getElementById('wCondIcon').textContent=icon;
-      document.getElementById('wCond').textContent=desc;
-      console.log('[Weather] fallback 更新成功');
-    }catch(e2){
-      console.log('[Weather] fallback 也失败:',e2.message);
-    }
+    const lat = pos.coords.latitude.toFixed(2);
+    const lon = pos.coords.longitude.toFixed(2);
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    const cur = data.current;
+    const [icon, desc] = weatherDesc(cur.weather_code);
+    document.getElementById('wTemp').textContent = Math.round(cur.temperature_2m) + '°';
+    document.getElementById('wHumi').textContent = cur.relative_humidity_2m + '%';
+    document.getElementById('wCondIcon').textContent = icon;
+    document.getElementById('wCond').textContent = desc;
+  } catch (e) {
+    try {
+      const resp = await fetch('https://api.open-meteo.com/v1/forecast?latitude=31.23&longitude=121.47&current=temperature_2m,relative_humidity_2m,weather_code&timezone=auto');
+      const data = await resp.json();
+      const cur = data.current;
+      const [icon, desc] = weatherDesc(cur.weather_code);
+      document.getElementById('wTemp').textContent = Math.round(cur.temperature_2m) + '°';
+      document.getElementById('wHumi').textContent = cur.relative_humidity_2m + '%';
+      document.getElementById('wCondIcon').textContent = icon;
+      document.getElementById('wCond').textContent = desc;
+    } catch (e2) {}
   }
 }
 
-function startWeather(){
+function startWeather() {
   fetchWeather();
-  if(weatherTimer)clearInterval(weatherTimer);
-  weatherTimer=setInterval(fetchWeather,WEATHER_INTERVAL);
+  if (weatherTimer) clearInterval(weatherTimer);
+  weatherTimer = setInterval(fetchWeather, 3600000);
 }
 
 // ====== UI淡出 ======
-function fadeUI(){
+function fadeUI() {
   clearTimeout(uiTm);
-  document.getElementById('topbar').classList.remove('fade');
-  uiTm=setTimeout(()=>document.getElementById('topbar').classList.add('fade'),5000);
+  const tb = document.getElementById('topbar');
+  tb.classList.remove('fade');
+  uiTm = setTimeout(() => tb.classList.add('fade'), 5000);
 }
-
-// ====== 上下滑动已废弃，改为左右页面滑动 ======
 
 // ====== 闹钟 ======
-function SA(min){
-  if(alarm)clearTimeout(alarm.timer);
-  const now=Date.now(),target=now+min*60000;
-  alarm={target,min,total:min*60000,timer:setTimeout(trigger,min*60000)};
-  showRun();startCD();
-  startClock(); // 切到1秒频率显示倒计时
+function SA(min) {
+  if (alarm) clearTimeout(alarm.timer);
+  const now = Date.now(), target = now + min * 60000;
+  alarm = { target, min, total: min * 60000, timer: setTimeout(trigger, min * 60000) };
+  showRun();
+  startCD();
+  startClock();
 }
-function SC(){
-  const v=parseInt(document.getElementById('cInput').value);
-  if(!v||v<1){
-    document.getElementById('cInput').style.borderColor='rgba(255,59,48,.5)';
-    setTimeout(()=>document.getElementById('cInput').style.borderColor='',800);
+
+function SC() {
+  const v = parseInt(document.getElementById('cInput').value);
+  if (!v || v < 1) {
+    document.getElementById('cInput').style.borderColor = 'rgba(255,59,48,.5)';
+    setTimeout(() => document.getElementById('cInput').style.borderColor = '', 800);
     return;
   }
   SA(v);
-  document.getElementById('cInput').value='';
+  document.getElementById('cInput').value = '';
   document.getElementById('cInput').blur();
 }
-function CA(){
-  if(alarm){clearTimeout(alarm.timer);alarm=null}
-  stopCD();stopSound();ringing=false;showSet();
-  startClock(); // 恢复省电时钟频率
+
+function CA() {
+  if (alarm) { clearTimeout(alarm.timer); alarm = null; }
+  stopCD(); stopSound(); ringing = false; showSet();
+  startClock();
 }
-function showSet(){
+
+function showSet() {
   document.getElementById('alarmSet').classList.remove('off');
   document.getElementById('alarmRun').classList.add('off');
 }
-function showRun(){
+
+function showRun() {
   document.getElementById('alarmSet').classList.add('off');
   document.getElementById('alarmRun').classList.remove('off');
-  if(alarm){
-    const t=new Date(alarm.target);
-    document.getElementById('arTarget').textContent=
-      String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+  if (alarm) {
+    const t = new Date(alarm.target);
+    document.getElementById('arTarget').textContent =
+      String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
   }
 }
-function startCD(){stopCD();updCD();cdTimer=setInterval(updCD,1000)}
-function stopCD(){if(cdTimer){clearInterval(cdTimer);cdTimer=null}}
-function updCD(){
-  if(!alarm)return;
-  const rem=Math.max(0,alarm.target-Date.now());
-  const ts=Math.ceil(rem/1000),mm=Math.floor(ts/60),ss=ts%60;
-  const cd=document.getElementById('arCD'),u=document.getElementById('arUnit');
-  if(mm>=60){
-    const hh=Math.floor(mm/60),rm=mm%60;
-    cd.textContent=`${hh}:${String(rm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-    u.textContent='时 : 分 : 秒';
-  }else{
-    cd.textContent=`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-    u.textContent='分 : 秒';
+
+function startCD() { stopCD(); updCD(); cdTimer = setInterval(updCD, 1000); }
+function stopCD() { if (cdTimer) { clearInterval(cdTimer); cdTimer = null; } }
+
+function updCD() {
+  if (!alarm) return;
+  const rem = Math.max(0, alarm.target - Date.now());
+  const ts = Math.ceil(rem / 1000), mm = Math.floor(ts / 60), ss = ts % 60;
+  const cd = document.getElementById('arCD'), u = document.getElementById('arUnit');
+  if (mm >= 60) {
+    const hh = Math.floor(mm / 60), rm = mm % 60;
+    cd.textContent = `${hh}:${String(rm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+    u.textContent = '时 : 分 : 秒';
+  } else {
+    cd.textContent = `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+    u.textContent = '分 : 秒';
   }
-  const p=1-(rem/alarm.total);
-  document.getElementById('ringBar').setAttribute('stroke-dashoffset',CIRC*(1-p));
+  document.getElementById('ringBar').setAttribute('stroke-dashoffset', CIRC * (1 - (1 - rem / alarm.total)));
 }
-function trigger(){
-  ringing=true;playSound();wakeUp('alarm');
-  const n=new Date();
-  document.getElementById('modalTime').textContent=
-    String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
-  document.getElementById('modalLabel').textContent=
-    (alarm?alarm.min:'')+' 分钟闹钟到！';
+
+function trigger() {
+  ringing = true; playSound(); wakeUp('alarm');
+  const n = new Date();
+  document.getElementById('modalTime').textContent =
+    String(n.getHours()).padStart(2, '0') + ':' + String(n.getMinutes()).padStart(2, '0');
+  document.getElementById('modalLabel').textContent = (alarm ? alarm.min : '') + ' 分钟闹钟到！';
   document.getElementById('modal').classList.add('show');
-  setTimeout(()=>{if(ringing)DM()},30000); // 最多响30秒
+  setTimeout(() => { if (ringing) DM(); }, 30000);
 }
-function DM(){
+
+function DM() {
   document.getElementById('modal').classList.remove('show');
-  stopSound();ringing=false;
-  if(alarm){clearTimeout(alarm.timer);alarm=null}
-  stopCD();showSet();
-  startClock(); // 恢复省电时钟频率
+  stopSound(); ringing = false;
+  if (alarm) { clearTimeout(alarm.timer); alarm = null; }
+  stopCD(); showSet(); startClock();
 }
 
-// ====== 闹钟音效（iOS兼容） ======
-// 核心：在用户首次交互时预创建并解锁 AudioContext
-// 闹钟触发时直接用已解锁的 context 播放，不再新建
-let _audioCtx=null;
-let _beepTimer=null;
+// ====== 闹钟音效 ======
+let _alarmAudioCtx = null;
+let _beepTimer = null;
 
-function _getAudioCtx(){
-  if(!_audioCtx){
-    _audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+function _getAlarmCtx() {
+  if (!_alarmAudioCtx) {
+    _alarmAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-  // iOS Safari 需要 resume
-  if(_audioCtx.state==='suspended'){
-    _audioCtx.resume().catch(()=>{});
-  }
-  return _audioCtx;
+  if (_alarmAudioCtx.state === 'suspended') _alarmAudioCtx.resume().catch(() => {});
+  return _alarmAudioCtx;
 }
 
-// 在用户首次交互时解锁音频（静默播放一帧）
-function unlockAudio(){
-  const ctx=_getAudioCtx();
-  // 播放一个无声振荡器来解锁
-  const o=ctx.createOscillator();
-  const g=ctx.createGain();
-  g.gain.value=0; // 无声
-  o.connect(g);g.connect(ctx.destination);
-  o.start();o.stop(ctx.currentTime+0.01);
-  console.log('[Audio] 已解锁, state:',ctx.state);
+function playSound() {
+  try { beepLoop(_getAlarmCtx()); } catch (e) {}
 }
 
-function playSound(){
-  try{
-    const ctx=_getAudioCtx();
-    beepLoop(ctx);
-  }catch(e){console.error('[Audio] playSound err:',e)}
-}
-function beepLoop(ctx){
-  if(!ringing)return;
-  // 闹铃音色：三连短促高音 + 一个高音，间隔重复
-  const notes=[
-    {f:880,dur:.12},{f:0,dur:.08},
-    {f:880,dur:.12},{f:0,dur:.08},
-    {f:880,dur:.12},{f:0,dur:.15},
-    {f:1100,dur:.2},{f:0,dur:.08},
-    {f:1100,dur:.2},{f:0,dur:.6}
+function beepLoop(ctx) {
+  if (!ringing) return;
+  const notes = [
+    { f: 880, dur: .12 }, { f: 0, dur: .08 },
+    { f: 880, dur: .12 }, { f: 0, dur: .08 },
+    { f: 880, dur: .12 }, { f: 0, dur: .15 },
+    { f: 1100, dur: .2 }, { f: 0, dur: .08 },
+    { f: 1100, dur: .2 }, { f: 0, dur: .6 }
   ];
-  let t=ctx.currentTime+0.05;
-  notes.forEach(n=>{
-    if(n.f>0){
-      const osc=ctx.createOscillator();
-      const gain=ctx.createGain();
-      osc.type='square'; // square 比 sine 更响亮
-      osc.frequency.value=n.f;
-      gain.gain.setValueAtTime(0.5,t);
-      gain.gain.exponentialRampToValueAtTime(0.01,t+n.dur);
-      osc.connect(gain);gain.connect(ctx.destination);
-      osc.start(t);osc.stop(t+n.dur+0.01);
+  let t = ctx.currentTime + 0.05;
+  notes.forEach(n => {
+    if (n.f > 0) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = n.f;
+      gain.gain.setValueAtTime(0.5, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + n.dur);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(t); osc.stop(t + n.dur + 0.01);
     }
-    t+=n.dur;
+    t += n.dur;
   });
-  // 循环播放
-  _beepTimer=setTimeout(()=>beepLoop(ctx),1800);
+  _beepTimer = setTimeout(() => beepLoop(ctx), 1800);
 }
-function stopSound(){
-  if(_beepTimer){clearTimeout(_beepTimer);_beepTimer=null}
-  // 不关闭 AudioContext，留着复用
+
+function stopSound() {
+  if (_beepTimer) { clearTimeout(_beepTimer); _beepTimer = null; }
 }
 
 // ====== 设置 ======
-function tAttn(){
-  attnOn=!attnOn;localStorage.setItem('sb-attn',attnOn);
-  document.getElementById('swAttn').classList.toggle('on',attnOn);
-  if(attnOn){startFace();showCamTimerRow(true)}else{stopFace();showCamTimerRow(false);clearCamTimer()}
+function tAttn() {
+  attnOn = !attnOn;
+  localStorage.setItem('sb-attn', attnOn);
+  document.getElementById('swAttn').classList.toggle('on', attnOn);
+  if (attnOn) { startFace(); showCamTimerRow(true); }
+  else { stopFace(); showCamTimerRow(false); clearCamTimer(); }
   updateStatus();
 }
 
-// ====== 摄像头定时关闭 ======
-function showCamTimerRow(show){
-  const row=document.getElementById('camTimerRow');
-  if(row) row.style.display=show?'flex':'none';
+function showCamTimerRow(show) {
+  const row = document.getElementById('camTimerRow');
+  if (row) row.style.display = show ? 'flex' : 'none';
 }
-function adjCamTimer(dir){
-  const idx=CAM_TIMER_OPTIONS.indexOf(camTimerHrs);
-  let ni=idx+dir;
-  if(ni<0)ni=CAM_TIMER_OPTIONS.length-1;
-  if(ni>=CAM_TIMER_OPTIONS.length)ni=0;
-  camTimerHrs=CAM_TIMER_OPTIONS[ni];
+
+function adjCamTimer(dir) {
+  const idx = CAM_TIMER_OPTIONS.indexOf(camTimerHrs);
+  let ni = idx + dir;
+  if (ni < 0) ni = CAM_TIMER_OPTIONS.length - 1;
+  if (ni >= CAM_TIMER_OPTIONS.length) ni = 0;
+  camTimerHrs = CAM_TIMER_OPTIONS[ni];
   updateCamTimerUI();
-  if(camTimerHrs>0){
-    setCamTimer(camTimerHrs);
-  }else{
-    clearCamTimer();
-  }
+  if (camTimerHrs > 0) setCamTimer(camTimerHrs);
+  else clearCamTimer();
 }
-function setCamTimer(hrs){
+
+function setCamTimer(hrs) {
   clearCamTimer();
-  camTimerHrs=hrs;
-  camTimerEndAt=Date.now()+hrs*3600000;
-  camTimerTm=setTimeout(()=>{
-    // 到时间了：关闭注视感知 + 释放 Wake Lock → 系统自动息屏
-    camTimerTm=null;
-    camTimerHrs=0;camTimerEndAt=0;
-    if(attnOn){
-      attnOn=false;localStorage.setItem('sb-attn',false);
+  camTimerHrs = hrs;
+  camTimerEndAt = Date.now() + hrs * 3600000;
+  camTimerTm = setTimeout(() => {
+    camTimerTm = null; camTimerHrs = 0; camTimerEndAt = 0;
+    if (attnOn) {
+      attnOn = false; localStorage.setItem('sb-attn', false);
       document.getElementById('swAttn').classList.remove('on');
-      stopFace();showCamTimerRow(false);
+      stopFace(); showCamTimerRow(false);
     }
-    // 关键：释放屏幕常亮，让系统按用户设置的自动锁定时间息屏
     releaseWake();
-    updateCamTimerUI();
-    updateStatus();
-    console.log('[CamTimer] 定时到期，已关闭摄像头并释放屏幕常亮');
-  },hrs*3600000);
-  console.log('[CamTimer] 设置'+hrs+'小时后关闭');
+    updateCamTimerUI(); updateStatus();
+  }, hrs * 3600000);
 }
-function clearCamTimer(){
-  if(camTimerTm){clearTimeout(camTimerTm);camTimerTm=null}
-  camTimerEndAt=0;
-  // 不重置 camTimerHrs，保留用户选择
+
+function clearCamTimer() {
+  if (camTimerTm) { clearTimeout(camTimerTm); camTimerTm = null; }
+  camTimerEndAt = 0;
 }
-function updateCamTimerUI(){
-  const valEl=document.getElementById('camTimerVal');
-  const descEl=document.getElementById('camTimerDesc');
-  if(!valEl)return;
-  if(camTimerHrs===0){
-    valEl.textContent='常驻';
-    valEl.classList.add('off');
-    descEl.textContent='摄像头将一直运行';
-  }else{
-    valEl.textContent=camTimerHrs+'h';
-    valEl.classList.remove('off');
-    if(camTimerEndAt>0){
-      const endTime=new Date(camTimerEndAt);
-      const hh=String(endTime.getHours()).padStart(2,'0');
-      const mm=String(endTime.getMinutes()).padStart(2,'0');
-      descEl.innerHTML=hh+':'+mm+' 关闭摄像头，之后系统自动息屏';
-    }else{
-      descEl.textContent=camTimerHrs+'小时后关闭，之后系统自动息屏';
+
+function updateCamTimerUI() {
+  const valEl = document.getElementById('camTimerVal');
+  const descEl = document.getElementById('camTimerDesc');
+  if (!valEl) return;
+  if (camTimerHrs === 0) {
+    valEl.textContent = '常驻'; valEl.classList.add('off');
+    descEl.textContent = '摄像头将一直运行';
+  } else {
+    valEl.textContent = camTimerHrs + 'h'; valEl.classList.remove('off');
+    if (camTimerEndAt > 0) {
+      const et = new Date(camTimerEndAt);
+      descEl.textContent = String(et.getHours()).padStart(2, '0') + ':' + String(et.getMinutes()).padStart(2, '0') + ' 关闭摄像头';
+    } else {
+      descEl.textContent = camTimerHrs + '小时后关闭';
     }
   }
 }
-function tNight(){
-  nightOn=!nightOn;localStorage.setItem('sb-night',nightOn);
-  document.getElementById('swNight').classList.toggle('on',nightOn);
-  document.body.classList.toggle('night',nightOn);
+
+function tNight() {
+  nightOn = !nightOn; localStorage.setItem('sb-night', nightOn);
+  document.getElementById('swNight').classList.toggle('on', nightOn);
+  document.body.classList.toggle('night', nightOn);
 }
-function tLP(){
-  lpOn=!lpOn;localStorage.setItem('sb-lp',lpOn);
-  document.getElementById('swLP').classList.toggle('on',lpOn);
-  document.body.classList.toggle('lowpow',lpOn);
-  startClock(); // 重启时钟，应用新频率
+
+function tLP() {
+  lpOn = !lpOn; localStorage.setItem('sb-lp', lpOn);
+  document.getElementById('swLP').classList.toggle('on', lpOn);
+  document.body.classList.toggle('lowpow', lpOn);
+  startClock();
 }
+
 // ====== 屏幕状态机 ======
-// 触屏后时序：亮屏 20 分钟 → 微暗 20 分钟 → 自动息屏
-let screenState='bright';
-
-// -- 亮屏阶段（20分钟）--
-function startBrightTimer(){
-  clearBrightTimer();
-  clearDimTimer();
-  screenState='bright';
-  undim();
-  brightEndAt=Date.now()+BRIGHT_DUR;
-  brightTm=setTimeout(()=>{
-    brightTm=null;
-    brightEndAt=0;
-    enterDimPhase();
-  },BRIGHT_DUR);
-  console.log('[Screen] 进入亮屏阶段 20 分钟');
+function startBrightTimer() {
+  clearBrightTimer(); clearDimTimer();
+  screenState = 'bright'; undim();
+  brightEndAt = Date.now() + BRIGHT_DUR;
+  brightTm = setTimeout(() => { brightTm = null; brightEndAt = 0; enterDimPhase(); }, BRIGHT_DUR);
   updateStatus();
 }
-function clearBrightTimer(){
-  if(brightTm){clearTimeout(brightTm);brightTm=null}
-  brightEndAt=0;
-}
 
-// -- 微暗阶段（20分钟）--
-function enterDimPhase(){
-  if(isScreenOff)return;
-  clearBrightTimer();
-  clearDimTimer();
-  screenState='dim';
+function clearBrightTimer() { if (brightTm) { clearTimeout(brightTm); brightTm = null; } brightEndAt = 0; }
+
+function enterDimPhase() {
+  if (isScreenOff) return;
+  clearBrightTimer(); clearDimTimer();
+  screenState = 'dim';
   document.getElementById('dim').classList.add('on');
-  dimEndAt=Date.now()+DIM_DUR;
-  dimTm=setTimeout(()=>{
-    dimTm=null;
-    dimEndAt=0;
-    enterScreenOff();
-  },DIM_DUR);
-  console.log('[Screen] 进入微暗阶段 20 分钟');
+  dimEndAt = Date.now() + DIM_DUR;
+  dimTm = setTimeout(() => { dimTm = null; dimEndAt = 0; enterScreenOff(); }, DIM_DUR);
   updateStatus();
 }
-function clearDimTimer(){
-  if(dimTm){clearTimeout(dimTm);dimTm=null}
-  dimEndAt=0;
-}
-function undim(){document.getElementById('dim').classList.remove('on')}
 
-// -- 息屏（释放 Wake Lock，系统自动锁屏）--
-function enterScreenOff(){
-  if(isScreenOff)return;
-  isScreenOff=true;
-  screenState='screenoff';
-  clearBrightTimer();
-  clearDimTimer();
-  if(attnOn && vidStream){
-    stopFaceQuiet();
-  }
-  if(clockTm){clearInterval(clockTm);clockTm=null}
-  clockTm=setInterval(tick,30000);
+function clearDimTimer() { if (dimTm) { clearTimeout(dimTm); dimTm = null; } dimEndAt = 0; }
+function undim() { document.getElementById('dim').classList.remove('on'); }
+
+function enterScreenOff() {
+  if (isScreenOff) return;
+  isScreenOff = true; screenState = 'screenoff';
+  clearBrightTimer(); clearDimTimer();
+  if (attnOn && vidStream) stopFaceQuiet();
+  if (clockTm) { clearInterval(clockTm); clockTm = null; }
+  clockTm = setInterval(tick, 30000);
   releaseWake();
-  console.log('[Screen] → screenoff (Wake Lock released, system will lock screen)');
   updateStatus();
 }
-function cancelScreenOff(){
-  if(screenOffTm){clearTimeout(screenOffTm);screenOffTm=null}
-}
 
-// -- 唤醒（统一入口）--
-function wakeUp(reason){
-  console.log('[wakeUp]',reason,'screenState=',screenState,'isScreenOff=',isScreenOff);
-  clearBrightTimer();
-  clearDimTimer();
-  cancelScreenOff();
-  undim();
-
-  if(isScreenOff){
-    isScreenOff=false;
-    reqWake();
-    startClock();
+function wakeUp(reason) {
+  clearBrightTimer(); clearDimTimer(); undim();
+  if (isScreenOff) {
+    isScreenOff = false;
+    reqWake(); startClock();
   }
-
-  screenState='bright';
-  lastFaceTime=Date.now();
+  screenState = 'bright';
+  lastFaceTime = Date.now();
   startBrightTimer();
-
-  if(reason==='touch' && attnOn){
-    ensureFaceDetectionRunning();
-  }
+  if (reason === 'touch' && attnOn) ensureFaceDetectionRunning();
   updateStatus();
 }
 
 // ====== 注视感知 ======
-async function startFace(){
-  try{
-    if(typeof FaceDetector!=='undefined'){
-      faceDetector=new FaceDetector({fastMode:true,maxDetectedFaces:1});
-      const v=document.getElementById('face-vid');
-      vidStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:320,height:240}});
-      v.srcObject=vidStream;await v.play();
-      faceInt=setInterval(async()=>{
-        try{const f=await faceDetector.detect(v);setLook(f.length>0)}catch(e){}
-      },lpOn?FACE_INTERVAL_LOWPOW:FACE_INTERVAL_NORMAL);
-      console.log('[Face] FaceDetector API 启动, 间隔:'+(lpOn?FACE_INTERVAL_LOWPOW:FACE_INTERVAL_NORMAL)+'ms');
-      updateStatus();return;
+async function startFace() {
+  try {
+    if (typeof FaceDetector !== 'undefined') {
+      faceDetector = new FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      const v = document.getElementById('face-vid');
+      vidStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 320, height: 240 } });
+      v.srcObject = vidStream; await v.play();
+      const interval = lpOn ? FACE_INTERVAL_LP : FACE_INTERVAL;
+      faceInt = setInterval(async () => {
+        try { const f = await faceDetector.detect(v); setLook(f.length > 0); } catch (e) {}
+      }, interval);
+      updateStatus(); return;
     }
-  }catch(e){console.log('[Face] FaceDetector 不可用:',e.message)}
-  try{
-    const v=document.getElementById('face-vid');
-    vidStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:160,height:120}});
-    v.srcObject=vidStream;await v.play();
-    const cv=document.createElement('canvas');cv.width=160;cv.height=120;
-    const ctx=cv.getContext('2d',{willReadFrequently:true});let prev=null;
-    faceInt=setInterval(()=>{
-      ctx.drawImage(v,0,0,160,120);
-      const data=ctx.getImageData(0,0,160,120).data;
-      if(prev){let d=0;for(let i=0;i<data.length;i+=160)d+=Math.abs(data[i]-prev[i]);setLook(d/(data.length/160)>3)}
-      prev=new Uint8Array(data);
-    },lpOn?MOTION_INTERVAL_LOWPOW:MOTION_INTERVAL_NORMAL);
-    console.log('[Face] 运动检测 fallback 启动, 间隔:'+(lpOn?MOTION_INTERVAL_LOWPOW:MOTION_INTERVAL_NORMAL)+'ms');
+  } catch (e) {}
+
+  // Fallback: 运动检测
+  try {
+    const v = document.getElementById('face-vid');
+    vidStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: 160, height: 120 } });
+    v.srcObject = vidStream; await v.play();
+    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 120;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    let prev = null;
+    const interval = lpOn ? FACE_INTERVAL_LP : FACE_INTERVAL;
+    faceInt = setInterval(() => {
+      ctx.drawImage(v, 0, 0, 160, 120);
+      const data = ctx.getImageData(0, 0, 160, 120).data;
+      if (prev) {
+        let d = 0;
+        for (let i = 0; i < data.length; i += 160) d += Math.abs(data[i] - prev[i]);
+        setLook(d / (data.length / 160) > 3);
+      }
+      prev = new Uint8Array(data);
+    }, interval);
     updateStatus();
-  }catch(e){console.log('[Face] 摄像头不可用:',e.message)}
+  } catch (e) {}
 }
-function setLook(v){
-  // 立即更新绿点状态
-  const dot=document.getElementById('faceDot');
-  if(dot && !gazePaused && attnOn){
-    dot.classList.toggle('on',v);
-  }
-  // 注视暂停期，忽略所有检测结果
-  if(gazePaused)return;
-  if(v===isLooking)return; // 去重
-  isLooking=v;
-  if(v){
-    // 检测到人脸 → 唤醒 + 注视暂停
-    lastFaceTime=Date.now();
+
+function setLook(v) {
+  const dot = document.getElementById('faceDot');
+  if (dot && !gazePaused && attnOn) dot.classList.toggle('on', v);
+  if (gazePaused) return;
+  if (v === isLooking) return;
+  isLooking = v;
+  if (v) {
+    lastFaceTime = Date.now();
     wakeUp('face');
     enterGazePause();
-  }else{
-    // 没检测到人脸：保持当前亮度阶段，不再立即压暗
+  } else {
     updateStatus();
   }
 }
 
-// 进入注视暂停：亮屏5分钟，期间暂停检测但保持流（避免iOS重复弹权限）
-function enterGazePause(){
-  if(gazeTm)clearTimeout(gazeTm);
-  gazePaused=true;
-  gazeEndAt=Date.now()+GAZE_DUR;
-  // 停止检测轮询
-  if(faceInt){clearInterval(faceInt);faceInt=null}
-  // ★ 暂停摄像头轨道（不销毁流！iOS Safari 每次 getUserMedia 都弹权限）
+function enterGazePause() {
+  if (gazeTm) clearTimeout(gazeTm);
+  gazePaused = true;
+  gazeEndAt = Date.now() + GAZE_DUR;
+  if (faceInt) { clearInterval(faceInt); faceInt = null; }
   pauseCamera();
-  gazeTm=setTimeout(()=>{
-    // 5分钟到，恢复检测
-    gazeTm=null;
-    gazePaused=false;
-    isLooking=false;
-    // ★ 恢复摄像头轨道（无需重新获取权限）
+  gazeTm = setTimeout(() => {
+    gazeTm = null; gazePaused = false; isLooking = false;
     resumeCamera();
-    restartFaceDetection('normal');
-    console.log('[Gaze] 注视暂停结束，已恢复检测');
+    restartFaceDetection();
     updateStatus();
-  },GAZE_DUR);
+  }, GAZE_DUR);
   updateStatus();
 }
 
-// 暂停摄像头：禁用轨道（硬件降功耗，但不销毁流，避免重新弹权限）
-// 注意：iOS 状态栏绿点不会消失，但这是唯一不弹权限的方案
-function pauseCamera(){
-  if(vidStream){
-    vidStream.getTracks().forEach(t=>{t.enabled=false});
-    console.log('[Camera] 已暂停(track.enabled=false)');
+function pauseCamera() {
+  if (vidStream) vidStream.getTracks().forEach(t => { t.enabled = false; });
+}
+
+function resumeCamera() {
+  if (vidStream) {
+    vidStream.getTracks().forEach(t => { t.enabled = true; });
+    const v = document.getElementById('face-vid');
+    if (v && !v.srcObject) v.srcObject = vidStream;
   }
 }
 
-// 恢复摄像头：重新启用轨道
-function resumeCamera(){
-  if(vidStream){
-    vidStream.getTracks().forEach(t=>{t.enabled=true});
-    const v=document.getElementById('face-vid');
-    if(v && !v.srcObject) v.srcObject=vidStream;
-    console.log('[Camera] 已恢复(track.enabled=true)');
-  }
+function releaseCamera() {
+  if (vidStream) { vidStream.getTracks().forEach(t => t.stop()); vidStream = null; }
+  const v = document.getElementById('face-vid');
+  if (v) v.srcObject = null;
 }
 
-// 彻底释放摄像头（仅在用户主动关闭注视感知时调用）
-function releaseCamera(){
-  if(vidStream){
-    vidStream.getTracks().forEach(t=>t.stop());
-    vidStream=null;
-    console.log('[Camera] 已释放');
-  }
-  const v=document.getElementById('face-vid');
-  if(v) v.srcObject=null;
-}
-
-// 确保人脸检测正在运行（如果没在跑就重启）
-async function ensureFaceDetectionRunning(){
-  if(!attnOn)return;
-  if(faceInt)return; // 已经在跑
-  // 强制清除暂停状态
-  gazePaused=false;
-  isLooking=false;
-  if(gazeTm){clearTimeout(gazeTm);gazeTm=null}
-  // 确保轨道已启用
+async function ensureFaceDetectionRunning() {
+  if (!attnOn || faceInt) return;
+  gazePaused = false; isLooking = false;
+  if (gazeTm) { clearTimeout(gazeTm); gazeTm = null; }
   resumeCamera();
   restartFaceDetection();
-  console.log('[Face] 确保检测运行中');
 }
-// 在已有摄像头流的情况下，重启人脸检测轮询
-function restartFaceDetection(){
-  if(faceInt){clearInterval(faceInt);faceInt=null}
-  const v=document.getElementById('face-vid');
-  if(!vidStream||!v.srcObject)return;
-  if(faceDetector){
-    const interval=lpOn?FACE_INTERVAL_LOWPOW:FACE_INTERVAL_NORMAL;
-    faceInt=setInterval(async()=>{
-      try{const f=await faceDetector.detect(v);setLook(f.length>0)}catch(e){}
-    },interval);
-    console.log('[Face] 重启检测, 间隔:'+interval+'ms');
-  }else{
-    const interval=lpOn?MOTION_INTERVAL_LOWPOW:MOTION_INTERVAL_NORMAL;
-    const cv=document.createElement('canvas');cv.width=160;cv.height=120;
-    const ctx=cv.getContext('2d',{willReadFrequently:true});let prev=null;
-    faceInt=setInterval(()=>{
-      ctx.drawImage(v,0,0,160,120);
-      const data=ctx.getImageData(0,0,160,120).data;
-      if(prev){let d=0;for(let i=0;i<data.length;i+=160)d+=Math.abs(data[i]-prev[i]);setLook(d/(data.length/160)>3)}
-      prev=new Uint8Array(data);
-    },interval);
-    console.log('[Face] 重启运动检测(fallback), 间隔:'+interval+'ms');
+
+function restartFaceDetection() {
+  if (faceInt) { clearInterval(faceInt); faceInt = null; }
+  const v = document.getElementById('face-vid');
+  if (!vidStream || !v.srcObject) return;
+  const interval = lpOn ? FACE_INTERVAL_LP : FACE_INTERVAL;
+  if (faceDetector) {
+    faceInt = setInterval(async () => {
+      try { const f = await faceDetector.detect(v); setLook(f.length > 0); } catch (e) {}
+    }, interval);
+  } else {
+    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 120;
+    const ctx = cv.getContext('2d', { willReadFrequently: true });
+    let prev = null;
+    faceInt = setInterval(() => {
+      ctx.drawImage(v, 0, 0, 160, 120);
+      const data = ctx.getImageData(0, 0, 160, 120).data;
+      if (prev) {
+        let d = 0;
+        for (let i = 0; i < data.length; i += 160) d += Math.abs(data[i] - prev[i]);
+        setLook(d / (data.length / 160) > 3);
+      }
+      prev = new Uint8Array(data);
+    }, interval);
   }
 }
-function stopFace(){
-  if(faceInt){clearInterval(faceInt);faceInt=null}
-  releaseCamera(); // 用户主动关闭时才真正释放
-  if(gazeTm){clearTimeout(gazeTm);gazeTm=null}
-  faceDetector=null;isLooking=false;gazePaused=false;
+
+function stopFace() {
+  if (faceInt) { clearInterval(faceInt); faceInt = null; }
+  releaseCamera();
+  if (gazeTm) { clearTimeout(gazeTm); gazeTm = null; }
+  faceDetector = null; isLooking = false; gazePaused = false;
   wakeUp('stop');
 }
-// 静默停止（息屏时用，不触发 wakeUp）
-function stopFaceQuiet(){
-  if(faceInt){clearInterval(faceInt);faceInt=null}
-  pauseCamera(); // 只暂停不释放，以便唤醒时恢复
-  if(gazeTm){clearTimeout(gazeTm);gazeTm=null}
-  isLooking=false;gazePaused=false;
+
+function stopFaceQuiet() {
+  if (faceInt) { clearInterval(faceInt); faceInt = null; }
+  pauseCamera();
+  if (gazeTm) { clearTimeout(gazeTm); gazeTm = null; }
+  isLooking = false; gazePaused = false;
 }
 
 // ====== 状态指示器 ======
-function updateStatus(){
-  const el=document.getElementById('statusText');
-  const dot=document.getElementById('faceDot');
-  if(!el)return;
-  const now=Date.now();
-  let parts=[];
+function updateStatus() {
+  const el = document.getElementById('statusText');
+  const dot = document.getElementById('faceDot');
+  if (!el) return;
+  const now = Date.now();
+  let parts = [];
 
-  // 摄像头/注视状态
-  if(attnOn){
-    if(gazePaused){
-      const left=gazeTm?Math.max(0,Math.ceil((gazeEndAt-now)/1000)):0;
-      parts.push('⏸ 暂停 '+fmtSec(left));
-    }else if(vidStream && faceInt){
+  if (attnOn) {
+    if (gazePaused) {
+      const left = gazeTm ? Math.max(0, Math.ceil((gazeEndAt - now) / 1000)) : 0;
+      parts.push('⏸ 暂停 ' + fmtSec(left));
+    } else if (vidStream && faceInt) {
       parts.push('👁 检测中');
-    }else if(vidStream){
+    } else if (vidStream) {
       parts.push('📷 就绪');
-    }else{
+    } else {
       parts.push('📷 待启动');
     }
-    // 摄像头定时倒计时
-    if(camTimerEndAt>0){
-      const camLeft=Math.max(0,Math.ceil((camTimerEndAt-now)/60000));
-      if(camLeft>60) parts.push(Math.floor(camLeft/60)+'h'+String(camLeft%60).padStart(2,'0')+'m后关');
-      else if(camLeft>0) parts.push(camLeft+'m后关');
-      else parts.push('即将关闭');
+    if (camTimerEndAt > 0) {
+      const camLeft = Math.max(0, Math.ceil((camTimerEndAt - now) / 60000));
+      if (camLeft > 60) parts.push(Math.floor(camLeft / 60) + 'h' + String(camLeft % 60).padStart(2, '0') + 'm后关');
+      else if (camLeft > 0) parts.push(camLeft + 'm后关');
     }
   }
 
-  // 屏幕亮度阶段
-  if(screenState==='bright' && brightEndAt>0 && !isScreenOff){
-    const leftMin=Math.max(0,Math.ceil((brightEndAt-now)/60000));
-    if(leftMin>0) parts.push('亮屏'+leftMin+'m');
+  if (screenState === 'bright' && brightEndAt > 0 && !isScreenOff) {
+    const leftMin = Math.max(0, Math.ceil((brightEndAt - now) / 60000));
+    if (leftMin > 0) parts.push('亮屏' + leftMin + 'm');
   }
-  if(screenState==='dim' && dimEndAt>0 && !isScreenOff){
-    const leftMin=Math.max(0,Math.ceil((dimEndAt-now)/60000));
-    if(leftMin>0) parts.push('微暗'+leftMin+'m后息屏');
+  if (screenState === 'dim' && dimEndAt > 0 && !isScreenOff) {
+    const leftMin = Math.max(0, Math.ceil((dimEndAt - now) / 60000));
+    if (leftMin > 0) parts.push('微暗' + leftMin + 'm后息屏');
   }
+  if (screenState === 'screenoff') parts.push('已息屏');
 
-  // 屏幕状态
-  if(screenState==='dim' && dimEndAt===0){
-    parts.push('微暗中');
-  }else if(screenState==='screenoff'){
-    parts.push('已息屏');
-  }
+  el.textContent = parts.join(' · ');
 
-  el.textContent=parts.join(' · ');
-
-  // 绿点：只在正常亮屏且检测到人脸时亮
-  if(dot){
-    const showDot=attnOn && faceInt && isLooking && !gazePaused;
-    dot.classList.toggle('on',showDot);
+  if (dot) {
+    dot.classList.toggle('on', attnOn && faceInt && isLooking && !gazePaused);
   }
 }
-function fmtSec(s){
-  if(s>=60)return Math.floor(s/60)+'分'+String(s%60).padStart(2,'0')+'秒';
-  return s+'秒';
-}
-// 5秒刷新一次状态栏（从1秒降低，省电）
-setInterval(updateStatus,5000);
 
-window.onerror=(m,u,l)=>console.error('ERR:',m,'L:',l);
+function fmtSec(s) {
+  if (s >= 60) return Math.floor(s / 60) + '分' + String(s % 60).padStart(2, '0') + '秒';
+  return s + '秒';
+}
+
+// 定期刷新状态栏
+setInterval(updateStatus, 5000);
+
+window.onerror = (m, u, l) => console.error('ERR:', m, 'L:', l);
 </script>
 </body>
 </html>
