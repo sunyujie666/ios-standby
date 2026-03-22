@@ -16,7 +16,7 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{
   width:100%;height:100%;overflow:hidden;
-  background:#050607;color:#fff;
+  background:#000;color:#fff;
   font-family:-apple-system,'SF Pro Display','Helvetica Neue','PingFang SC',sans-serif;
   -webkit-user-select:none;user-select:none;
   -webkit-font-smoothing:antialiased;
@@ -25,23 +25,6 @@ html,body{
 body{
   display:flex;align-items:center;justify-content:center;
   position:fixed;inset:0;
-  background:
-    radial-gradient(120% 120% at 0% 0%, rgba(58,78,180,.20) 0%, rgba(58,78,180,0) 42%),
-    radial-gradient(100% 120% at 100% 100%, rgba(188,73,91,.16) 0%, rgba(188,73,91,0) 46%),
-    linear-gradient(160deg,#06080b 0%,#040506 55%,#020304 100%);
-}
-body::before{
-  content:'';
-  position:fixed;inset:-18%;pointer-events:none;
-  background:
-    radial-gradient(35% 35% at 25% 32%, rgba(255,255,255,.09) 0%, rgba(255,255,255,0) 72%),
-    radial-gradient(30% 30% at 78% 70%, rgba(255,128,71,.09) 0%, rgba(255,128,71,0) 70%);
-  filter:blur(18px);
-  animation:bg-float 16s ease-in-out infinite alternate;
-}
-@keyframes bg-float{
-  from{transform:translate3d(-2%,0,0) scale(1)}
-  to{transform:translate3d(2%,-2%,0) scale(1.05)}
 }
 
 /* === 引导页 === */
@@ -72,43 +55,34 @@ body::before{
 /* === 主布局 === */
 #app{width:100%;height:100%;display:none;position:relative;overflow:hidden}
 #app.show{display:block}
-#app::before{
-  content:'';
-  position:absolute;inset:0;pointer-events:none;z-index:0;
-  background:linear-gradient(180deg,rgba(255,255,255,.05) 0%,rgba(255,255,255,0) 26%);
-}
-#app > *{position:relative;z-index:1}
 
 /* === 页面滑动容器 === */
 .pages{
   display:flex;width:200%;height:100%;
-  transition:transform .55s cubic-bezier(.22,.61,.36,1);
+  transition:transform .5s cubic-bezier(.25,.46,.45,.94);
 }
 .pages.no-anim{transition:none}
 .page{
   width:50%;height:100%;flex-shrink:0;
-  display:flex;padding:18px;gap:16px;
+  display:flex;
+  padding:12px;gap:12px;
+  align-items:stretch;
 }
 
 /* === 页面指示器 === */
 .page-dots{
-  position:fixed;bottom:max(10px,env(safe-area-inset-bottom));
+  position:fixed;bottom:max(6px,env(safe-area-inset-bottom));
   left:50%;transform:translateX(-50%);
-  display:flex;gap:8px;z-index:60;
-  padding:6px 10px;border-radius:999px;
-  background:rgba(8,10,14,.55);
-  border:1px solid rgba(255,255,255,.10);
-  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  display:flex;gap:6px;z-index:60;
 }
 .page-dot{
-  width:7px;height:7px;border-radius:50%;
-  background:rgba(255,255,255,.22);
-  transition:all .32s ease;
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(255,255,255,.2);
+  transition:all .3s;
 }
 .page-dot.active{
-  width:20px;border-radius:4px;
-  background:linear-gradient(90deg,#ffb457,#ff8d3a);
-  box-shadow:0 0 10px rgba(255,145,58,.45);
+  width:18px;border-radius:3px;
+  background:rgba(255,255,255,.6);
 }
 
 /* ===== 第一页：模拟时钟 + 日历 ===== */
@@ -116,34 +90,25 @@ body::before{
 /* -- 模拟时钟面板 -- */
 .analog-panel{
   flex:1;display:flex;align-items:center;justify-content:center;
-  border-radius:30px;
-  background:
-    linear-gradient(160deg,rgba(22,26,34,.90) 0%,rgba(12,14,18,.92) 100%),
-    rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.10);
+  border-radius:22px;
+  background:rgba(255,255,255,.04);
   position:relative;overflow:hidden;min-width:0;
-  box-shadow:0 18px 40px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.06);
-}
-.analog-panel::after{
-  content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(70% 70% at 30% 22%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 70%);
 }
 .analog-clock{
   position:relative;
-  width:min(72vh,340px);height:min(72vh,340px);
+  width:min(68vh,300px);height:min(68vh,300px);
 }
 .analog-face{
   width:100%;height:100%;border-radius:50%;
-  background:
-    radial-gradient(circle at 50% 42%, rgba(56,60,73,.92) 0%, rgba(17,19,24,.96) 55%, rgba(10,11,14,1) 100%);
-  border:2px solid rgba(255,255,255,.14);
+  background:radial-gradient(circle at 50% 45%, rgba(40,40,45,1) 0%, rgba(20,20,22,1) 100%);
+  border:2px solid rgba(255,255,255,.08);
   position:relative;
   box-shadow:
-    0 0 0 1px rgba(255,255,255,.05),
-    0 24px 55px rgba(0,0,0,.48),
-    inset 0 0 70px rgba(0,0,0,.38);
+    0 0 0 1px rgba(255,255,255,.03),
+    0 0 40px rgba(0,0,0,.5),
+    inset 0 0 60px rgba(0,0,0,.3);
 }
-/* 刻度 - 从顶部向圆心旋转 */
+/* 刻度 */
 .tick{
   position:absolute;
   left:50%;
@@ -152,22 +117,20 @@ body::before{
 .tick.major{
   top:4%;height:5%;width:2.5px;margin-left:-1.25px;
   background:rgba(255,255,255,.85);border-radius:1px;
-  /* 圆心在50%，刻度top=4%，刻度高=5% → 从top到center = (50-4)/5 * 100 = 920% */
   transform-origin:50% 920%;
 }
 .tick.minor{
   top:4%;height:2.5%;width:1.5px;margin-left:-0.75px;
   background:rgba(255,255,255,.25);
-  /* (50-4)/2.5 * 100 = 1840% */
   transform-origin:50% 1840%;
 }
 /* 数字 */
 .hour-num{
   position:absolute;
-  font-size:min(4.5vh,22px);font-weight:600;
+  font-size:min(4vh,20px);font-weight:600;
   color:rgba(255,255,255,.85);
   text-align:center;
-  width:30px;height:30px;line-height:30px;
+  width:28px;height:28px;line-height:28px;
   transform:translate(-50%,-50%);
 }
 /* 指针容器 */
@@ -228,49 +191,47 @@ body::before{
 
 /* -- 日历面板 -- */
 .calendar-panel{
-  width:min(42vh,292px);flex-shrink:0;
+  width:min(38vh,260px);flex-shrink:0;
   display:flex;flex-direction:column;
-  border-radius:30px;
-  background:linear-gradient(165deg,rgba(20,22,30,.92),rgba(10,12,16,.96));
-  border:1px solid rgba(255,255,255,.1);
+  border-radius:22px;
+  background:rgba(255,255,255,.04);
   overflow:hidden;
-  padding:16px;
-  box-shadow:0 16px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.05);
+  padding:14px;
 }
 .cal-header{
   display:flex;align-items:baseline;gap:8px;
-  margin-bottom:12px;padding:0 2px;
+  margin-bottom:10px;padding:0 2px;
 }
 .cal-month{
-  font-size:min(4vh,24px);font-weight:700;
+  font-size:min(3.8vh,22px);font-weight:700;
   color:#ff9f0a;
 }
 .cal-lunar{
-  font-size:min(2.2vh,13px);font-weight:400;
+  font-size:min(2vh,12px);font-weight:400;
   color:rgba(255,255,255,.3);
 }
 .cal-weekdays{
   display:grid;grid-template-columns:repeat(7,1fr);
   text-align:center;
-  margin-bottom:6px;
+  margin-bottom:4px;
 }
 .cal-wd{
-  font-size:min(1.8vh,11px);font-weight:500;
+  font-size:min(1.6vh,10px);font-weight:500;
   color:rgba(255,255,255,.3);
   padding:2px 0;
 }
 .cal-days{
   display:grid;grid-template-columns:repeat(7,1fr);
-  text-align:center;gap:1px;
+  text-align:center;gap:0;
   flex:1;align-content:start;
 }
 .cal-day{
-  font-size:min(2.5vh,15px);font-weight:400;
+  font-size:min(2.2vh,14px);font-weight:400;
   color:rgba(255,255,255,.55);
-  padding:4px 0;
+  padding:2px 0;
   border-radius:50%;
-  line-height:min(4.5vh,28px);
-  width:min(4.5vh,28px);height:min(4.5vh,28px);
+  line-height:min(4vh,26px);
+  width:min(4vh,26px);height:min(4vh,26px);
   margin:1px auto;
   display:flex;align-items:center;justify-content:center;
 }
@@ -281,56 +242,53 @@ body::before{
 }
 .cal-day.weekend{color:rgba(255,255,255,.3)}
 
-/* ===== 第二页：数字时钟 + 闹钟（保留原布局）===== */
+/* ===== 第二页：数字时钟 + 闹钟 ===== */
 
 /* === 左侧：时钟 === */
 .clock-panel{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  border-radius:30px;
-  background:linear-gradient(165deg,rgba(22,26,34,.92),rgba(10,12,16,.96));
-  border:1px solid rgba(255,255,255,.1);
+  border-radius:22px;
+  background:rgba(255,255,255,.04);
   position:relative;overflow:hidden;
   min-width:0;
-  box-shadow:0 18px 38px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 .clock-time{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-size:min(20vw, 168px);
-  font-weight:230;
-  letter-spacing:-3px;
+  font-size:min(18vw, 160px);
+  font-weight:200;
+  letter-spacing:-4px;
   line-height:1;
   font-variant-numeric:tabular-nums;
   color:#fff;
   text-align:center;
   position:relative;
-  padding-right:min(8vw,64px);
-  text-shadow:0 0 30px rgba(255,255,255,.1);
+  padding-right:min(7vw,56px);
 }
 .clock-hm{display:inline-block}
 .clock-colon{opacity:.5}
 .clock-sec{
   position:absolute;top:0.12em;right:0;
-  font-size:min(4vw, 32px);font-weight:300;
+  font-size:min(3.5vw, 28px);font-weight:300;
   color:rgba(255,255,255,.2);line-height:1;
   letter-spacing:0;
 }
 .clock-date{
-  font-size:min(4.2vw, 28px);font-weight:500;
-  color:rgba(255,255,255,.55);
-  margin-top:14px;letter-spacing:2px;text-align:center;
+  font-size:min(3.6vw, 24px);font-weight:500;
+  color:rgba(255,255,255,.45);
+  margin-top:12px;letter-spacing:2px;text-align:center;
 }
 .clock-weather{
   display:flex;align-items:center;justify-content:center;
-  gap:min(2.5vw, 16px);margin-top:8px;
-  font-size:min(2.6vw, 15px);font-weight:400;
+  gap:min(2.5vw, 16px);margin-top:6px;
+  font-size:min(2.4vw, 14px);font-weight:400;
   color:rgba(255,255,255,.18);letter-spacing:0.5px;
 }
 .clock-weather .w-item{display:flex;align-items:center;gap:3px}
-.clock-weather .w-icon{font-size:min(2.8vw, 16px);opacity:.7}
+.clock-weather .w-icon{font-size:min(2.6vw, 15px);opacity:.7}
 
 .status-bar{
   position:absolute;bottom:8px;left:0;right:0;
@@ -348,51 +306,48 @@ body::before{
 
 /* === 右侧：闹钟 === */
 .alarm-panel{
-  width:292px;flex-shrink:0;
+  width:260px;flex-shrink:0;
   display:flex;flex-direction:column;
-  border-radius:30px;
-  background:linear-gradient(165deg,rgba(20,22,30,.92),rgba(10,12,16,.96));
-  border:1px solid rgba(255,255,255,.1);
+  border-radius:22px;
+  background:rgba(255,255,255,.04);
   overflow:hidden;
-  box-shadow:0 16px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 /* 闹钟头部 */
 .alarm-head{
-  padding:14px 18px 10px;
+  padding:12px 16px 10px;
   display:flex;align-items:center;gap:8px;
-  border-bottom:1px solid rgba(255,255,255,.05);
+  border-bottom:1px solid rgba(255,255,255,.06);
   flex-shrink:0;
 }
-.alarm-head-icon{font-size:18px}
-.alarm-head-title{font-size:16px;font-weight:600;color:rgba(255,255,255,.5)}
+.alarm-head-icon{font-size:17px}
+.alarm-head-title{font-size:15px;font-weight:600;color:rgba(255,255,255,.5)}
 
 /* 设定模式 */
 .alarm-set{
   flex:1;display:flex;flex-direction:column;
-  padding:12px;gap:8px;overflow-y:auto;
+  padding:10px;gap:6px;overflow-y:auto;
   -webkit-overflow-scrolling:touch;
 }
 .alarm-set.off{display:none}
 
 .q-btn{
   display:flex;align-items:center;justify-content:space-between;
-  padding:14px 16px;
-  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.03));
-  border:1px solid rgba(255,255,255,.10);
-  border-radius:16px;cursor:pointer;
-  transition:transform .15s,background .2s,border-color .2s;
+  padding:12px 14px;
+  background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;cursor:pointer;
+  transition:background .15s,border-color .15s;
 }
 .q-btn:active{
-  transform:scale(.985);
-  background:linear-gradient(160deg,rgba(255,159,10,.16),rgba(255,95,46,.08));
-  border-color:rgba(255,159,10,.35);
+  background:rgba(255,159,10,.08);
+  border-color:rgba(255,159,10,.2);
 }
-.q-left{display:flex;align-items:center;gap:12px}
-.q-emoji{font-size:20px}
+.q-left{display:flex;align-items:center;gap:10px}
+.q-emoji{font-size:18px}
 .q-info{display:flex;flex-direction:column;gap:1px}
-.q-time{font-size:16px;font-weight:700;color:#fff}
-.q-desc{font-size:11px;color:rgba(255,255,255,.28)}
+.q-time{font-size:15px;font-weight:700;color:#fff}
+.q-desc{font-size:10px;color:rgba(255,255,255,.28)}
 .q-arrow{font-size:14px;color:rgba(255,255,255,.15)}
 
 .divider{display:flex;align-items:center;gap:10px;padding:4px 0}
@@ -400,16 +355,16 @@ body::before{
 .divider-text{font-size:11px;color:rgba(255,255,255,.2)}
 
 .custom-box{
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:14px;padding:12px;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:14px;padding:10px;
 }
 .custom-row{display:flex;align-items:center;gap:8px}
 .custom-input{
   flex:1;background:rgba(255,255,255,.06);
   border:1px solid rgba(255,255,255,.08);
-  border-radius:10px;padding:10px 12px;
-  color:#fff;font-size:17px;font-weight:600;
+  border-radius:10px;padding:9px 12px;
+  color:#fff;font-size:16px;font-weight:600;
   text-align:center;outline:none;
   font-variant-numeric:tabular-nums;
   transition:border-color .2s;
@@ -418,10 +373,10 @@ body::before{
 .custom-input:focus{border-color:rgba(255,159,10,.4)}
 .custom-unit{font-size:13px;color:rgba(255,255,255,.3);white-space:nowrap}
 .custom-go{
-  margin-top:10px;width:100%;
+  margin-top:8px;width:100%;
   background:linear-gradient(135deg,#ff9f0a,#ff6723);
-  border:none;border-radius:12px;padding:11px;
-  color:#000;font-size:15px;font-weight:700;cursor:pointer;
+  border:none;border-radius:12px;padding:10px;
+  color:#000;font-size:14px;font-weight:700;cursor:pointer;
 }
 .custom-go:active{transform:scale(.97)}
 
@@ -429,26 +384,26 @@ body::before{
 .alarm-run{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  padding:20px;position:relative;
+  padding:16px;position:relative;
 }
 .alarm-run.off{display:none}
 
-.ar-icon{font-size:32px;margin-bottom:6px;animation:pulse 2s ease-in-out infinite}
+.ar-icon{font-size:28px;margin-bottom:4px;animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-.ar-label{font-size:12px;color:rgba(255,255,255,.3);letter-spacing:1px;margin-bottom:2px}
-.ar-target{font-size:15px;font-weight:600;color:#ff9f0a;margin-bottom:14px;font-variant-numeric:tabular-nums}
+.ar-label{font-size:11px;color:rgba(255,255,255,.3);letter-spacing:1px;margin-bottom:2px}
+.ar-target{font-size:14px;font-weight:600;color:#ff9f0a;margin-bottom:12px;font-variant-numeric:tabular-nums}
 .ar-countdown{
-  font-size:min(14vw, 64px);font-weight:700;color:#fff;
+  font-size:min(12vw, 56px);font-weight:700;color:#fff;
   font-variant-numeric:tabular-nums;
   letter-spacing:-1px;line-height:1;margin-bottom:4px;
   text-shadow:0 0 30px rgba(255,159,10,.12);
 }
-.ar-unit{font-size:11px;color:rgba(255,255,255,.22);margin-bottom:20px;letter-spacing:1px}
+.ar-unit{font-size:10px;color:rgba(255,255,255,.22);margin-bottom:16px;letter-spacing:1px}
 .ar-cancel{
   background:rgba(255,59,48,.1);
   border:1px solid rgba(255,59,48,.15);
-  border-radius:50px;padding:9px 28px;
-  color:#ff453a;font-size:13px;font-weight:600;cursor:pointer;z-index:2;
+  border-radius:50px;padding:8px 24px;
+  color:#ff453a;font-size:12px;font-weight:600;cursor:pointer;z-index:2;
 }
 .ar-cancel:active{background:rgba(255,59,48,.2);transform:scale(.96)}
 
@@ -572,14 +527,26 @@ body::before{
 }
 
 /* 小屏适配 */
-@media screen and (max-height:500px){
-  .alarm-panel{width:220px}
-  .ar-countdown{font-size:min(12vw,48px)}
-  .q-btn{padding:10px 12px}
-  .analog-clock{width:min(60vh,260px);height:min(60vh,260px)}
-  .calendar-panel{width:min(36vh,240px);padding:10px}
-  .cal-month{font-size:min(3.5vh,20px)}
-  .hour-num{font-size:min(3.5vh,18px)}
+@media screen and (max-height:420px){
+  .page{padding:8px;gap:8px}
+  .alarm-panel{width:200px}
+  .alarm-set{padding:8px;gap:4px}
+  .q-btn{padding:8px 10px}
+  .q-emoji{font-size:15px}
+  .q-time{font-size:13px}
+  .q-desc{font-size:9px}
+  .alarm-head{padding:8px 12px 6px}
+  .alarm-head-title{font-size:13px}
+  .ar-countdown{font-size:min(10vw,42px)}
+  .analog-clock{width:min(56vh,240px);height:min(56vh,240px)}
+  .calendar-panel{width:min(34vh,220px);padding:8px}
+  .cal-month{font-size:min(3.2vh,18px)}
+  .hour-num{font-size:min(3.2vh,16px)}
+  .clock-time{font-size:min(16vw,120px)}
+  .custom-box{padding:8px}
+  .custom-input{padding:7px 10px;font-size:14px}
+  .custom-go{padding:8px;font-size:13px}
+  .divider{padding:2px 0}
 }
 
 /* 隐藏视频 */
