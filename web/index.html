@@ -50,20 +50,203 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 .g-tip-text{font-size:11px;color:rgba(255,255,255,.25);line-height:1.4}
 
 /* === 主布局 === */
-#app{width:100%;height:100%;display:none}
+#app{width:100%;height:100%;display:none;position:relative;overflow:hidden}
 #app.show{display:block}
 
-.layout{
-  width:100%;height:100%;display:flex;
-  padding:12px;gap:12px;
+/* === 页面滑动容器 === */
+.pages{
+  display:flex;width:200%;height:100%;
+  transition:transform .45s cubic-bezier(.25,.46,.45,.94);
 }
+.pages.no-anim{transition:none}
+.page{
+  width:50%;height:100%;flex-shrink:0;
+  display:flex;padding:12px;gap:12px;
+}
+
+/* === 页面指示器 === */
+.page-dots{
+  position:fixed;bottom:max(8px,env(safe-area-inset-bottom));
+  left:50%;transform:translateX(-50%);
+  display:flex;gap:6px;z-index:60;
+}
+.page-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:rgba(255,255,255,.2);
+  transition:all .3s;
+}
+.page-dot.active{
+  width:18px;border-radius:3px;
+  background:rgba(255,255,255,.6);
+}
+
+/* ===== 第一页：模拟时钟 + 日历 ===== */
+
+/* -- 模拟时钟面板 -- */
+.analog-panel{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  border-radius:28px;
+  background:rgba(255,255,255,.03);
+  position:relative;overflow:hidden;min-width:0;
+}
+.analog-clock{
+  position:relative;
+  width:min(70vh,320px);height:min(70vh,320px);
+}
+.analog-face{
+  width:100%;height:100%;border-radius:50%;
+  background:radial-gradient(circle at 50% 45%, rgba(40,40,45,1) 0%, rgba(20,20,22,1) 100%);
+  border:2px solid rgba(255,255,255,.08);
+  position:relative;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.03),
+    0 0 40px rgba(0,0,0,.5),
+    inset 0 0 60px rgba(0,0,0,.3);
+}
+/* 刻度 - 从顶部向圆心旋转 */
+.tick{
+  position:absolute;
+  left:50%;
+  background:rgba(255,255,255,.5);
+}
+.tick.major{
+  top:4%;height:5%;width:2.5px;margin-left:-1.25px;
+  background:rgba(255,255,255,.85);border-radius:1px;
+  /* 圆心在50%，刻度top=4%，刻度高=5% → 从top到center = (50-4)/5 * 100 = 920% */
+  transform-origin:50% 920%;
+}
+.tick.minor{
+  top:4%;height:2.5%;width:1.5px;margin-left:-0.75px;
+  background:rgba(255,255,255,.25);
+  /* (50-4)/2.5 * 100 = 1840% */
+  transform-origin:50% 1840%;
+}
+/* 数字 */
+.hour-num{
+  position:absolute;
+  font-size:min(4.5vh,22px);font-weight:600;
+  color:rgba(255,255,255,.85);
+  text-align:center;
+  width:30px;height:30px;line-height:30px;
+  transform:translate(-50%,-50%);
+}
+/* 指针容器 */
+.hands-container{
+  position:absolute;inset:0;
+}
+/* 指针 */
+.hand{
+  position:absolute;bottom:50%;left:50%;
+  transform-origin:50% 100%;
+  border-radius:2px;
+}
+.hand-hour{
+  width:4.5px;height:26%;
+  background:linear-gradient(to top,#e0e0e0 0%,#fff 100%);
+  margin-left:-2.25px;
+  z-index:4;
+  border-radius:3px;
+  box-shadow:0 0 8px rgba(0,0,0,.6);
+}
+.hand-min{
+  width:3px;height:36%;
+  background:linear-gradient(to top,#d0d0d0 0%,#fff 100%);
+  margin-left:-1.5px;
+  z-index:5;
+  border-radius:2px;
+  box-shadow:0 0 8px rgba(0,0,0,.6);
+}
+.hand-sec{
+  width:1.5px;height:40%;
+  background:#ff9f0a;
+  margin-left:-0.75px;
+  z-index:6;
+  box-shadow:0 0 6px rgba(255,159,10,.5);
+}
+.hand-sec::after{
+  content:'';position:absolute;bottom:-18%;left:50%;
+  transform:translateX(-50%);
+  width:1.5px;height:18%;
+  background:#ff9f0a;
+  border-radius:1px;
+}
+.center-dot{
+  position:absolute;top:50%;left:50%;
+  width:10px;height:10px;border-radius:50%;
+  background:#ff9f0a;
+  transform:translate(-50%,-50%);
+  z-index:7;
+  box-shadow:0 0 8px rgba(255,159,10,.6);
+}
+.center-dot-inner{
+  position:absolute;top:50%;left:50%;
+  width:4px;height:4px;border-radius:50%;
+  background:#1a1a1a;
+  transform:translate(-50%,-50%);
+  z-index:8;
+}
+
+/* -- 日历面板 -- */
+.calendar-panel{
+  width:min(42vh,280px);flex-shrink:0;
+  display:flex;flex-direction:column;
+  border-radius:28px;
+  background:rgba(255,255,255,.03);
+  overflow:hidden;
+  padding:16px;
+}
+.cal-header{
+  display:flex;align-items:baseline;gap:8px;
+  margin-bottom:12px;padding:0 2px;
+}
+.cal-month{
+  font-size:min(4vh,24px);font-weight:700;
+  color:#ff9f0a;
+}
+.cal-lunar{
+  font-size:min(2.2vh,13px);font-weight:400;
+  color:rgba(255,255,255,.3);
+}
+.cal-weekdays{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  text-align:center;
+  margin-bottom:6px;
+}
+.cal-wd{
+  font-size:min(1.8vh,11px);font-weight:500;
+  color:rgba(255,255,255,.3);
+  padding:2px 0;
+}
+.cal-days{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  text-align:center;gap:1px;
+  flex:1;align-content:start;
+}
+.cal-day{
+  font-size:min(2.5vh,15px);font-weight:400;
+  color:rgba(255,255,255,.55);
+  padding:4px 0;
+  border-radius:50%;
+  line-height:min(4.5vh,28px);
+  width:min(4.5vh,28px);height:min(4.5vh,28px);
+  margin:1px auto;
+  display:flex;align-items:center;justify-content:center;
+}
+.cal-day.other{color:rgba(255,255,255,.15)}
+.cal-day.today{
+  background:#ff3b30;color:#fff;font-weight:600;
+  box-shadow:0 0 10px rgba(255,59,48,.3);
+}
+.cal-day.weekend{color:rgba(255,255,255,.3)}
+
+/* ===== 第二页：数字时钟 + 闹钟（保留原布局）===== */
 
 /* === 左侧：时钟 === */
 .clock-panel{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  border-radius:24px;
-  background:rgba(255,255,255,.02);
+  border-radius:28px;
+  background:rgba(255,255,255,.03);
   position:relative;overflow:hidden;
   min-width:0;
 }
@@ -82,82 +265,48 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
   position:relative;
   padding-right:min(8vw,64px);
 }
-.clock-hm{
-  display:inline-block;
-}
-.clock-colon{
-  opacity:.4;
-  animation:blink 2s ease-in-out infinite;
-}
+.clock-hm{display:inline-block}
+.clock-colon{opacity:.5}
 .clock-sec{
-  position:absolute;
-  top:0.12em;
-  right:0;
-  font-size:min(4vw, 32px);
-  font-weight:300;
-  color:rgba(255,255,255,.2);
-  line-height:1;
+  position:absolute;top:0.12em;right:0;
+  font-size:min(4vw, 32px);font-weight:300;
+  color:rgba(255,255,255,.2);line-height:1;
   letter-spacing:0;
-  transform:translateX(0);
 }
 .clock-date{
-  font-size:min(4.2vw, 28px);
-  font-weight:500;
+  font-size:min(4.2vw, 28px);font-weight:500;
   color:rgba(255,255,255,.55);
-  margin-top:14px;
-  letter-spacing:2px;
-  text-align:center;
+  margin-top:14px;letter-spacing:2px;text-align:center;
 }
 .clock-weather{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:min(2.5vw, 16px);
-  margin-top:8px;
-  font-size:min(2.6vw, 15px);
-  font-weight:400;
-  color:rgba(255,255,255,.18);
-  letter-spacing:0.5px;
+  display:flex;align-items:center;justify-content:center;
+  gap:min(2.5vw, 16px);margin-top:8px;
+  font-size:min(2.6vw, 15px);font-weight:400;
+  color:rgba(255,255,255,.18);letter-spacing:0.5px;
 }
-.clock-weather .w-item{
-  display:flex;align-items:center;gap:3px;
-}
-.clock-weather .w-icon{
-  font-size:min(2.8vw, 16px);
-  opacity:.7;
-}
+.clock-weather .w-item{display:flex;align-items:center;gap:3px}
+.clock-weather .w-icon{font-size:min(2.8vw, 16px);opacity:.7}
 
 .status-bar{
-  position:absolute;
-  bottom:8px;left:0;right:0;
+  position:absolute;bottom:8px;left:0;right:0;
   display:flex;align-items:center;justify-content:center;gap:6px;
-  font-size:10px;
-  color:rgba(255,255,255,.15);
-  letter-spacing:0.5px;
-  font-weight:400;
-  line-height:1.4;
+  font-size:10px;color:rgba(255,255,255,.15);
+  letter-spacing:0.5px;font-weight:400;line-height:1.4;
 }
 .face-dot{
   width:6px;height:6px;border-radius:50%;
   background:#30d158;
   box-shadow:0 0 6px rgba(48,209,88,.5);
-  opacity:0;
-  transition:opacity .3s;
-  flex-shrink:0;
+  opacity:0;transition:opacity .3s;flex-shrink:0;
 }
 .face-dot.on{opacity:1}
-
-@keyframes blink{
-  0%,100%{opacity:.4}
-  50%{opacity:1}
-}
 
 /* === 右侧：闹钟 === */
 .alarm-panel{
   width:280px;flex-shrink:0;
   display:flex;flex-direction:column;
-  border-radius:24px;
-  background:rgba(255,255,255,.02);
+  border-radius:28px;
+  background:rgba(255,255,255,.03);
   overflow:hidden;
 }
 
@@ -198,10 +347,7 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 .q-desc{font-size:11px;color:rgba(255,255,255,.28)}
 .q-arrow{font-size:14px;color:rgba(255,255,255,.15)}
 
-.divider{
-  display:flex;align-items:center;gap:10px;
-  padding:4px 0;
-}
+.divider{display:flex;align-items:center;gap:10px;padding:4px 0}
 .divider-line{flex:1;height:1px;background:rgba(255,255,255,.06)}
 .divider-text{font-size:11px;color:rgba(255,255,255,.2)}
 
@@ -244,11 +390,9 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 .ar-label{font-size:12px;color:rgba(255,255,255,.3);letter-spacing:1px;margin-bottom:2px}
 .ar-target{font-size:15px;font-weight:600;color:#ff9f0a;margin-bottom:14px;font-variant-numeric:tabular-nums}
 .ar-countdown{
-  font-size:min(14vw, 64px);
-  font-weight:700;color:#fff;
+  font-size:min(14vw, 64px);font-weight:700;color:#fff;
   font-variant-numeric:tabular-nums;
-  letter-spacing:-1px;line-height:1;
-  margin-bottom:4px;
+  letter-spacing:-1px;line-height:1;margin-bottom:4px;
   text-shadow:0 0 30px rgba(255,159,10,.12);
 }
 .ar-unit{font-size:11px;color:rgba(255,255,255,.22);margin-bottom:20px;letter-spacing:1px}
@@ -256,8 +400,7 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
   background:rgba(255,59,48,.1);
   border:1px solid rgba(255,59,48,.15);
   border-radius:50px;padding:9px 28px;
-  color:#ff453a;font-size:13px;font-weight:600;
-  cursor:pointer;z-index:2;
+  color:#ff453a;font-size:13px;font-weight:600;cursor:pointer;z-index:2;
 }
 .ar-cancel:active{background:rgba(255,59,48,.2);transform:scale(.96)}
 
@@ -356,9 +499,7 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 #dim.on{opacity:.9}
 
 /* === 摄像头定时器控件 === */
-.cam-timer-ctrl{
-  display:flex;align-items:center;gap:6px;flex-shrink:0;
-}
+.cam-timer-ctrl{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .ct-btn{
   width:30px;height:30px;border-radius:50%;border:none;
   background:rgba(255,255,255,.12);color:#fff;font-size:18px;
@@ -387,6 +528,10 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
   .alarm-panel{width:220px}
   .ar-countdown{font-size:min(12vw,48px)}
   .q-btn{padding:10px 12px}
+  .analog-clock{width:min(60vh,260px);height:min(60vh,260px)}
+  .calendar-panel{width:min(36vh,240px);padding:10px}
+  .cal-month{font-size:min(3.5vh,20px)}
+  .hour-num{font-size:min(3.5vh,18px)}
 }
 
 /* 隐藏视频 */
@@ -410,8 +555,9 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
     <div class="g-sub">横放 iPhone，变身智能时钟</div>
     <button class="g-btn" id="startBtn">开始体验</button>
     <div class="g-tips">
-      <div class="g-tip"><div class="g-tip-icon">⏰</div><div class="g-tip-text">右侧闹钟<br>快捷设定</div></div>
-      <div class="g-tip"><div class="g-tip-icon">👁️</div><div class="g-tip-text">注视感知<br>自动亮屏</div></div>
+      <div class="g-tip"><div class="g-tip-icon">🕐</div><div class="g-tip-text">模拟时钟<br>+日历</div></div>
+      <div class="g-tip"><div class="g-tip-icon">👆</div><div class="g-tip-text">左右滑动<br>切换页面</div></div>
+      <div class="g-tip"><div class="g-tip-icon">⏰</div><div class="g-tip-text">数字时钟<br>+闹钟</div></div>
     </div>
   </div>
 </div>
@@ -422,77 +568,120 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
     <button class="gear" id="gearBtn">⚙</button>
   </div>
 
-  <div class="layout">
-    <!-- 左侧：时钟 -->
-    <div class="clock-panel" id="clockPanel">
-      <div class="clock-time" id="clockTime">
-        <span class="clock-hm">00<span class="clock-colon">:</span>00</span><span class="clock-sec">00</span>
-      </div>
-      <div class="clock-date" id="clockDate">星期日 · 3月15日</div>
-      <div class="clock-weather" id="clockWeather">
-        <span class="w-item"><span class="w-icon">🌡</span><span id="wTemp">--°</span></span>
-        <span class="w-item"><span class="w-icon">💧</span><span id="wHumi">--%</span></span>
-        <span class="w-item"><span class="w-icon" id="wCondIcon">☁</span><span id="wCond">--</span></span>
-      </div>
-      <div class="status-bar" id="statusBar"><span class="face-dot" id="faceDot"></span><span id="statusText"></span></div>
-    </div>
-
-    <!-- 右侧：闹钟 -->
-    <div class="alarm-panel">
-      <div class="alarm-head">
-        <span class="alarm-head-icon">⏰</span>
-        <span class="alarm-head-title">闹钟</span>
-      </div>
-
-      <!-- 设定模式 -->
-      <div class="alarm-set" id="alarmSet">
-        <div class="q-btn" onclick="SA(5)">
-          <div class="q-left"><span class="q-emoji">⚡</span><div class="q-info"><span class="q-time">5 分钟</span><span class="q-desc">快速小憩</span></div></div>
-          <span class="q-arrow">›</span>
-        </div>
-        <div class="q-btn" onclick="SA(10)">
-          <div class="q-left"><span class="q-emoji">☕</span><div class="q-info"><span class="q-time">10 分钟</span><span class="q-desc">短暂休息</span></div></div>
-          <span class="q-arrow">›</span>
-        </div>
-        <div class="q-btn" onclick="SA(30)">
-          <div class="q-left"><span class="q-emoji">😴</span><div class="q-info"><span class="q-time">30 分钟</span><span class="q-desc">午休小睡</span></div></div>
-          <span class="q-arrow">›</span>
-        </div>
-        <div class="q-btn" onclick="SA(60)">
-          <div class="q-left"><span class="q-emoji">🛏️</span><div class="q-info"><span class="q-time">60 分钟</span><span class="q-desc">深度休息</span></div></div>
-          <span class="q-arrow">›</span>
-        </div>
-
-        <div class="divider">
-          <div class="divider-line"></div>
-          <span class="divider-text">自定义</span>
-          <div class="divider-line"></div>
-        </div>
-
-        <div class="custom-box">
-          <div class="custom-row">
-            <input type="number" class="custom-input" id="cInput" placeholder="输入分钟" min="1" max="999">
-            <span class="custom-unit">分钟</span>
+  <!-- 页面滑动容器 -->
+  <div class="pages" id="pages">
+    <!-- ===== 第一页：模拟时钟 + 日历 ===== -->
+    <div class="page" id="page1">
+      <!-- 模拟时钟 -->
+      <div class="analog-panel">
+        <div class="analog-clock" id="analogClock">
+          <div class="analog-face" id="analogFace">
+            <!-- 刻度和数字由JS生成 -->
           </div>
-          <button class="custom-go" onclick="SC()">设定闹钟</button>
+          <div class="hands-container">
+            <div class="hand hand-hour" id="handHour"></div>
+            <div class="hand hand-min" id="handMin"></div>
+            <div class="hand hand-sec" id="handSec"></div>
+            <div class="center-dot"></div>
+            <div class="center-dot-inner"></div>
+          </div>
         </div>
       </div>
 
-      <!-- 倒计时模式 -->
-      <div class="alarm-run off" id="alarmRun">
-        <svg class="ring-svg" viewBox="0 0 300 300" id="ringSvg">
-          <circle class="ring-track" cx="150" cy="150" r="140"/>
-          <circle class="ring-bar" cx="150" cy="150" r="140" id="ringBar"
-            stroke-dasharray="879.6" stroke-dashoffset="0" transform="rotate(-90 150 150)"/>
-        </svg>
-        <div class="ar-icon">⏰</div>
-        <div class="ar-label">响铃时间</div>
-        <div class="ar-target" id="arTarget">00:00</div>
-        <div class="ar-countdown" id="arCD">00:00</div>
-        <div class="ar-unit" id="arUnit">分 : 秒</div>
-        <button class="ar-cancel" onclick="CA()">取消闹钟</button>
+      <!-- 日历 -->
+      <div class="calendar-panel" id="calendarPanel">
+        <div class="cal-header">
+          <span class="cal-month" id="calMonth">3月</span>
+          <span class="cal-lunar" id="calLunar">二月初三</span>
+        </div>
+        <div class="cal-weekdays">
+          <span class="cal-wd">日</span><span class="cal-wd">一</span><span class="cal-wd">二</span>
+          <span class="cal-wd">三</span><span class="cal-wd">四</span><span class="cal-wd">五</span>
+          <span class="cal-wd">六</span>
+        </div>
+        <div class="cal-days" id="calDays"></div>
       </div>
     </div>
+
+    <!-- ===== 第二页：数字时钟 + 闹钟 ===== -->
+    <div class="page" id="page2">
+      <!-- 左侧：时钟 -->
+      <div class="clock-panel" id="clockPanel">
+        <div class="clock-time" id="clockTime">
+          <span class="clock-hm">00<span class="clock-colon">:</span>00</span><span class="clock-sec">00</span>
+        </div>
+        <div class="clock-date" id="clockDate">星期日 · 3月15日</div>
+        <div class="clock-weather" id="clockWeather">
+          <span class="w-item"><span class="w-icon">🌡</span><span id="wTemp">--°</span></span>
+          <span class="w-item"><span class="w-icon">💧</span><span id="wHumi">--%</span></span>
+          <span class="w-item"><span class="w-icon" id="wCondIcon">☁</span><span id="wCond">--</span></span>
+        </div>
+        <div class="status-bar" id="statusBar"><span class="face-dot" id="faceDot"></span><span id="statusText"></span></div>
+      </div>
+
+      <!-- 右侧：闹钟 -->
+      <div class="alarm-panel">
+        <div class="alarm-head">
+          <span class="alarm-head-icon">⏰</span>
+          <span class="alarm-head-title">闹钟</span>
+        </div>
+
+        <!-- 设定模式 -->
+        <div class="alarm-set" id="alarmSet">
+          <div class="q-btn" onclick="SA(5)">
+            <div class="q-left"><span class="q-emoji">⚡</span><div class="q-info"><span class="q-time">5 分钟</span><span class="q-desc">快速小憩</span></div></div>
+            <span class="q-arrow">›</span>
+          </div>
+          <div class="q-btn" onclick="SA(10)">
+            <div class="q-left"><span class="q-emoji">☕</span><div class="q-info"><span class="q-time">10 分钟</span><span class="q-desc">短暂休息</span></div></div>
+            <span class="q-arrow">›</span>
+          </div>
+          <div class="q-btn" onclick="SA(30)">
+            <div class="q-left"><span class="q-emoji">😴</span><div class="q-info"><span class="q-time">30 分钟</span><span class="q-desc">午休小睡</span></div></div>
+            <span class="q-arrow">›</span>
+          </div>
+          <div class="q-btn" onclick="SA(60)">
+            <div class="q-left"><span class="q-emoji">🛏️</span><div class="q-info"><span class="q-time">60 分钟</span><span class="q-desc">深度休息</span></div></div>
+            <span class="q-arrow">›</span>
+          </div>
+
+          <div class="divider">
+            <div class="divider-line"></div>
+            <span class="divider-text">自定义</span>
+            <div class="divider-line"></div>
+          </div>
+
+          <div class="custom-box">
+            <div class="custom-row">
+              <input type="number" class="custom-input" id="cInput" placeholder="输入分钟" min="1" max="999">
+              <span class="custom-unit">分钟</span>
+            </div>
+            <button class="custom-go" onclick="SC()">设定闹钟</button>
+          </div>
+        </div>
+
+        <!-- 倒计时模式 -->
+        <div class="alarm-run off" id="alarmRun">
+          <svg class="ring-svg" viewBox="0 0 300 300" id="ringSvg">
+            <circle class="ring-track" cx="150" cy="150" r="140"/>
+            <circle class="ring-bar" cx="150" cy="150" r="140" id="ringBar"
+              stroke-dasharray="879.6" stroke-dashoffset="0" transform="rotate(-90 150 150)"/>
+          </svg>
+          <div class="ar-icon">⏰</div>
+          <div class="ar-label">响铃时间</div>
+          <div class="ar-target" id="arTarget">00:00</div>
+          <div class="ar-countdown" id="arCD">00:00</div>
+          <div class="ar-unit" id="arUnit">分 : 秒</div>
+          <button class="ar-cancel" onclick="CA()">取消闹钟</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 页面指示器 -->
+  <div class="page-dots" id="pageDots">
+    <div class="page-dot active" data-page="0"></div>
+    <div class="page-dot" data-page="1"></div>
   </div>
 </div>
 
@@ -506,10 +695,17 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
     <button class="s-close" id="closeS">✕</button>
   </div>
   <div class="s-grp">
-    <div class="s-label">👁️ 注视感知</div>
+    <div class="s-label">💡 屏幕</div>
+    <div class="s-row" style="border-radius:10px">
+      <div><div class="s-row-t">触屏常亮</div><div class="s-row-d">触屏后常亮20分钟，超时自动息屏</div></div>
+      <span style="font-size:13px;color:rgba(255,255,255,.3);font-weight:500">默认开启</span>
+    </div>
+  </div>
+  <div class="s-grp">
+    <div class="s-label">👁️ 注视感知（可选）</div>
     <div class="s-row">
-      <div><div class="s-row-t">人眼注视感知</div><div class="s-row-d">看一眼亮屏5分钟，期间暂停检测省电</div></div>
-      <div class="sw on" id="swAttn" onclick="tAttn()"></div>
+      <div><div class="s-row-t">人眼注视感知</div><div class="s-row-d">看一眼亮屏5分钟，需要摄像头权限，较耗电</div></div>
+      <div class="sw" id="swAttn" onclick="tAttn()"></div>
     </div>
     <div class="s-row" id="camTimerRow" style="display:none">
       <div style="flex:1">
@@ -533,7 +729,7 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
   <div class="s-grp">
     <div class="s-label">⚡ 省电</div>
     <div class="s-row">
-      <div><div class="s-row-t">低电量模式</div><div class="s-row-d">关闭动画</div></div>
+      <div><div class="s-row-t">低电量模式</div><div class="s-row-d">关闭动画，降低刷新频率</div></div>
       <div class="sw" id="swLP" onclick="tLP()"></div>
     </div>
   </div>
@@ -555,7 +751,8 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
 <script>
 // ====== 状态 ======
 let alarm=null, cdTimer=null, ringing=false;
-let attnOn=localStorage.getItem('sb-attn')!=='false';
+// 注视感知默认关闭（省电优先）
+let attnOn=localStorage.getItem('sb-attn')==='true';
 let nightOn=localStorage.getItem('sb-night')==='true';
 let lpOn=localStorage.getItem('sb-lp')==='true';
 let dimTm=null, clockTm=null, uiTm=null;
@@ -563,7 +760,15 @@ let faceDetector=null,vidStream=null,faceInt=null;
 let isLooking=false,gazeTm=null,gazePaused=false;
 let screenOffTm=null, isScreenOff=false, lastFaceTime=Date.now();
 let gazeEndAt=0; // 注视暂停结束时间戳
-const DIM_DELAY=6000,GAZE_DUR=300000;
+const DIM_DELAY=6000;        // 6秒无操作变暗
+const GAZE_DUR=300000;       // 注视暂停5分钟
+const BRIGHT_DUR=1200000;    // 触屏常亮20分钟（20*60*1000）
+let brightTm=null;           // 常亮倒计时 timer
+let brightEndAt=0;           // 常亮结束时间戳
+
+// 页面切换
+let currentPage=0;
+const TOTAL_PAGES=2;
 
 // 摄像头定时关闭（0=常驻不自动关）
 let camTimerHrs=0;      // 用户设置的小时数
@@ -572,10 +777,10 @@ let camTimerTm=null;     // setTimeout id
 const CAM_TIMER_OPTIONS=[0,1,2,3,4,6,8]; // 可选小时数（0=常驻）
 
 // 检测频率（毫秒）——分场景降低频率省电
-const FACE_INTERVAL_NORMAL=2000;    // 正常状态：2秒一次
-const FACE_INTERVAL_LOWPOW=4000;    // 低电量：4秒一次
-const MOTION_INTERVAL_NORMAL=2000;  // 运动检测正常：2秒一次
-const MOTION_INTERVAL_LOWPOW=4000;  // 运动检测低电量：4秒一次
+const FACE_INTERVAL_NORMAL=3000;    // 正常状态：3秒一次（从2s降到3s）
+const FACE_INTERVAL_LOWPOW=5000;    // 低电量：5秒一次
+const MOTION_INTERVAL_NORMAL=3000;  // 运动检测正常：3秒一次
+const MOTION_INTERVAL_LOWPOW=5000;  // 运动检测低电量：5秒一次
 const CIRC=2*Math.PI*140;
 
 const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -585,15 +790,18 @@ const isSA=window.navigator.standalone===true||window.matchMedia('(display-mode:
 document.addEventListener('DOMContentLoaded',()=>{
   if(nightOn){document.getElementById('swNight').classList.add('on');document.body.classList.add('night')}
   if(lpOn){document.getElementById('swLP').classList.add('on');document.body.classList.add('lowpow')}
-  if(!attnOn)document.getElementById('swAttn').classList.remove('on');
+  if(attnOn)document.getElementById('swAttn').classList.add('on');
+  else document.getElementById('swAttn').classList.remove('on');
   showCamTimerRow(attnOn);updateCamTimerUI();
   if(isSA)skipGuide();
-  tick();startClock();
+  buildAnalogFace();
+  buildCalendar();
+  tick();tickAnalog();startClock();
   document.getElementById('startBtn').onclick=launch;
   document.getElementById('gearBtn').onclick=()=>document.getElementById('settings').classList.add('open');
   document.getElementById('closeS').onclick=()=>document.getElementById('settings').classList.remove('open');
   document.getElementById('cInput').onkeydown=e=>{if(e.key==='Enter')SC()};
-  setupSwipe();fadeUI();
+  setupPageSwipe();fadeUI();
   document.addEventListener('touchstart',(e)=>{
     unlockAudio();
     // 在设置面板/闹钟操作区/弹窗内的触摸不重置息屏流程
@@ -604,6 +812,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   },{passive:true});
   document.addEventListener('touchmove',e=>{
     if(e.target.closest('#settings')||e.target.closest('.alarm-set'))return;
+    // 不阻止页面滑动
+    if(e.target.closest('.pages'))return;
     e.preventDefault();
   },{passive:false});
 });
@@ -624,7 +834,9 @@ async function launch(){
   setTimeout(()=>g.classList.add('gone'),500);
   if(attnOn)startFace();
   startWeather();
+  startBrightTimer(); // 开始20分钟常亮
   startDim();
+  tickAnalog();
   updateStatus();
 }
 function skipGuide(){
@@ -633,7 +845,9 @@ function skipGuide(){
   reqWake();
   if(attnOn)setTimeout(startFace,400);
   startWeather();
+  startBrightTimer(); // 开始20分钟常亮
   startDim();
+  tickAnalog();
   setTimeout(updateStatus,500);
 }
 
@@ -658,15 +872,33 @@ function releaseWake(){
 }
 document.addEventListener('visibilitychange',async()=>{
   if(document.visibilityState==='visible'){
-    if(!wakeLock&&!noSleep)await reqWake();
+    // 切回前台：检查常亮是否已过期
+    if(brightEndAt>0 && Date.now()>=brightEndAt){
+      // 常亮已过期，进入息屏
+      clearBrightTimer();
+      enterScreenOff();
+    }else if(!isScreenOff){
+      if(!wakeLock&&!noSleep)await reqWake();
+    }
     tick();startClock();
-  }else{if(clockTm){clearInterval(clockTm);clockTm=null}}
+  }else{
+    // 切到后台：停止时钟省电
+    if(clockTm){clearInterval(clockTm);clockTm=null}
+  }
 });
 
 // ====== 时钟 ======
+function getClockInterval(){
+  // 有闹钟倒计时运行中 → 每秒更新
+  if(cdTimer) return 1000;
+  // 低电量 → 30秒
+  if(lpOn) return 30000;
+  // 正常 → 1秒（模拟时钟秒针需要）
+  return 1000;
+}
 function startClock(){
   if(clockTm)clearInterval(clockTm);
-  clockTm=setInterval(tick,lpOn?10000:1000);
+  clockTm=setInterval(()=>{tick();tickAnalog()},getClockInterval());
 }
 function tick(){
   const n=new Date();
@@ -680,9 +912,204 @@ function tick(){
   document.getElementById('clockDate').textContent=ds;
 }
 
+// ====== 模拟时钟 ======
+function buildAnalogFace(){
+  const face=document.getElementById('analogFace');
+  if(!face)return;
+  
+  // 生成刻度
+  for(let i=0;i<60;i++){
+    const isMajor=i%5===0;
+    const tick=document.createElement('div');
+    tick.className='tick '+(isMajor?'major':'minor');
+    tick.style.transform=`rotate(${i*6}deg)`;
+    face.appendChild(tick);
+  }
+  // 生成数字
+  const nums=[12,1,2,3,4,5,6,7,8,9,10,11];
+  const r=38; // 数字距中心百分比
+  nums.forEach((n,i)=>{
+    const angle=(i*30-90)*Math.PI/180;
+    const x=50+r*Math.cos(angle);
+    const y=50+r*Math.sin(angle);
+    const el=document.createElement('div');
+    el.className='hour-num';
+    el.textContent=n;
+    el.style.left=x+'%';
+    el.style.top=y+'%';
+    face.appendChild(el);
+  });
+}
+
+function tickAnalog(){
+  const n=new Date();
+  const h=n.getHours()%12,m=n.getMinutes(),s=n.getSeconds();
+  const hDeg=h*30+m*0.5;
+  const mDeg=m*6+s*0.1;
+  const sDeg=s*6;
+  const hEl=document.getElementById('handHour');
+  const mEl=document.getElementById('handMin');
+  const sEl=document.getElementById('handSec');
+  if(hEl)hEl.style.transform=`rotate(${hDeg}deg)`;
+  if(mEl)mEl.style.transform=`rotate(${mDeg}deg)`;
+  if(sEl)sEl.style.transform=`rotate(${sDeg}deg)`;
+}
+
+// ====== 日历 ======
+function buildCalendar(){
+  const now=new Date();
+  const year=now.getFullYear(),month=now.getMonth();
+  const today=now.getDate();
+  
+  // 月份标题
+  const monthEl=document.getElementById('calMonth');
+  if(monthEl) monthEl.textContent=(month+1)+'月';
+  
+  // 农历
+  const lunarEl=document.getElementById('calLunar');
+  if(lunarEl) lunarEl.textContent=getLunarDate(now);
+  
+  // 日历网格
+  const container=document.getElementById('calDays');
+  if(!container)return;
+  container.innerHTML='';
+  
+  const firstDay=new Date(year,month,1).getDay(); // 本月1号星期几
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const daysInPrev=new Date(year,month,0).getDate();
+  
+  // 上月尾部
+  for(let i=firstDay-1;i>=0;i--){
+    const el=document.createElement('div');
+    el.className='cal-day other';
+    el.textContent=daysInPrev-i;
+    container.appendChild(el);
+  }
+  // 本月
+  for(let d=1;d<=daysInMonth;d++){
+    const el=document.createElement('div');
+    const dow=new Date(year,month,d).getDay();
+    let cls='cal-day';
+    if(d===today) cls+=' today';
+    else if(dow===0||dow===6) cls+=' weekend';
+    el.className=cls;
+    el.textContent=d;
+    container.appendChild(el);
+  }
+  // 下月头部（填满6行42格或到足够）
+  const totalCells=firstDay+daysInMonth;
+  const needRows=Math.ceil(totalCells/7);
+  const remaining=needRows*7-totalCells;
+  for(let d=1;d<=remaining;d++){
+    const el=document.createElement('div');
+    el.className='cal-day other';
+    el.textContent=d;
+    container.appendChild(el);
+  }
+}
+
+// 简易农历（查表法 - 主要年份）
+function getLunarDate(date){
+  // 简化版：显示月份+日期的中文表示
+  const lunarMonths=['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+  const lunarDays=['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+    '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+    '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+  
+  // 使用基于公历的近似农历计算
+  // 这里用简化算法：取2026年农历数据
+  const y=date.getFullYear(),m=date.getMonth()+1,d=date.getDate();
+  
+  // 2026年部分农历对照（简化）
+  // 春节：2026年2月17日 = 正月初一
+  // 这里用简单偏移算法
+  const springFestival=new Date(2026,1,17); // 2026年春节
+  const diff=Math.floor((date-springFestival)/(24*3600*1000));
+  
+  if(diff<0){
+    // 春节前，属于上一年腊月
+    const prevDiff=diff+30; // 腊月约30天
+    if(prevDiff>=0 && prevDiff<30){
+      return '腊月'+lunarDays[prevDiff];
+    }
+    return '腊月'+lunarDays[Math.max(0,29+diff)];
+  }
+  
+  // 简化：按每月29.5天算
+  const lunarMonthLengths=[30,29,30,29,30,29,30,29,30,29,30,29];
+  let remaining=diff;
+  let lunarM=0;
+  for(let i=0;i<12;i++){
+    if(remaining<lunarMonthLengths[i]){
+      lunarM=i;break;
+    }
+    remaining-=lunarMonthLengths[i];
+    lunarM=i+1;
+  }
+  if(lunarM>=12)lunarM=11;
+  const lunarD=Math.min(remaining,29);
+  
+  return lunarMonths[lunarM]+'月'+lunarDays[lunarD];
+}
+
+// ====== 页面滑动 ======
+function setupPageSwipe(){
+  const pages=document.getElementById('pages');
+  if(!pages)return;
+  let sx=0,sy=0,dx=0,moving=false,startTime=0;
+  
+  pages.addEventListener('touchstart',e=>{
+    if(e.target.closest('#settings')||e.target.closest('.alarm-set')||e.target.closest('.custom-box'))return;
+    sx=e.touches[0].clientX;
+    sy=e.touches[0].clientY;
+    dx=0;moving=true;startTime=Date.now();
+    pages.classList.add('no-anim');
+  },{passive:true});
+  
+  pages.addEventListener('touchmove',e=>{
+    if(!moving)return;
+    const x=e.touches[0].clientX;
+    const y=e.touches[0].clientY;
+    dx=x-sx;
+    const dy=y-sy;
+    // 判断是否水平滑动
+    if(Math.abs(dx)>Math.abs(dy)&&Math.abs(dx)>10){
+      e.preventDefault();
+      const base=-currentPage*50;
+      const pct=base+(dx/window.innerWidth)*50;
+      pages.style.transform=`translateX(${pct}%)`;
+    }
+  },{passive:false});
+  
+  pages.addEventListener('touchend',e=>{
+    if(!moving)return;
+    moving=false;
+    pages.classList.remove('no-anim');
+    const elapsed=Date.now()-startTime;
+    const velocity=Math.abs(dx)/elapsed;
+    
+    // 快速滑动 或 滑动超过30%
+    if(Math.abs(dx)>window.innerWidth*0.3 || (velocity>0.3 && Math.abs(dx)>30)){
+      if(dx<0 && currentPage<TOTAL_PAGES-1) currentPage++;
+      else if(dx>0 && currentPage>0) currentPage--;
+    }
+    goToPage(currentPage);
+  },{passive:true});
+}
+
+function goToPage(idx){
+  currentPage=idx;
+  const pages=document.getElementById('pages');
+  if(pages) pages.style.transform=`translateX(${-idx*50}%)`;
+  // 更新指示器
+  document.querySelectorAll('.page-dot').forEach((d,i)=>{
+    d.classList.toggle('active',i===idx);
+  });
+}
+
 // ====== 天气 ======
 let weatherTimer=null;
-const WEATHER_INTERVAL=1800000; // 30分钟刷新一次
+const WEATHER_INTERVAL=3600000; // 60分钟刷新一次（从30分钟加大，省电）
 
 // 天气代码 → 图标 + 描述
 function weatherDesc(code){
@@ -752,18 +1179,7 @@ function fadeUI(){
   uiTm=setTimeout(()=>document.getElementById('topbar').classList.add('fade'),5000);
 }
 
-// ====== 上下滑动（预留多主题扩展）======
-function setupSwipe(){
-  let sy=0,drag=false;
-  document.addEventListener('touchstart',e=>{
-    if(e.target.closest('#settings')||e.target.closest('#guide')||e.target.closest('.alarm-panel'))return;
-    sy=e.touches[0].clientY;drag=true;
-  },{passive:true});
-  document.addEventListener('touchend',e=>{
-    if(!drag)return;drag=false;
-    // 暂只有一个主题，预留扩展
-  },{passive:true});
-}
+// ====== 上下滑动已废弃，改为左右页面滑动 ======
 
 // ====== 闹钟 ======
 function SA(min){
@@ -771,6 +1187,7 @@ function SA(min){
   const now=Date.now(),target=now+min*60000;
   alarm={target,min,total:min*60000,timer:setTimeout(trigger,min*60000)};
   showRun();startCD();
+  startClock(); // 切到1秒频率显示倒计时
 }
 function SC(){
   const v=parseInt(document.getElementById('cInput').value);
@@ -786,6 +1203,7 @@ function SC(){
 function CA(){
   if(alarm){clearTimeout(alarm.timer);alarm=null}
   stopCD();stopSound();ringing=false;showSet();
+  startClock(); // 恢复省电时钟频率
 }
 function showSet(){
   document.getElementById('alarmSet').classList.remove('off');
@@ -833,6 +1251,7 @@ function DM(){
   stopSound();ringing=false;
   if(alarm){clearTimeout(alarm.timer);alarm=null}
   stopCD();showSet();
+  startClock(); // 恢复省电时钟频率
 }
 
 // ====== 闹钟音效（iOS兼容） ======
@@ -984,14 +1403,37 @@ function tLP(){
   lpOn=!lpOn;localStorage.setItem('sb-lp',lpOn);
   document.getElementById('swLP').classList.toggle('on',lpOn);
   document.body.classList.toggle('lowpow',lpOn);
-  startClock();
+  startClock(); // 重启时钟，应用新频率
 }
 // ====== 屏幕状态机 ======
-// 简化：'bright' → 'dim' → 'screenoff'（息屏 = 释放 Wake Lock 让系统锁屏）
-//       ↑__________________________|  (触摸唤醒)
+// 核心策略（注视感知关闭时）：
+//   触屏 → bright（常亮20分钟）→ 6秒无操作 dim → 20分钟到 → 释放 Wake Lock 系统息屏
+//   中间触屏可重置 dim，但不重置20分钟总时长
+//   再次触屏 → 重新开始20分钟
+//
+// 注视感知开启时：
+//   人脸检测到 → bright 5分钟（暂停检测省电）→ 恢复检测 → startDim
+//   触屏重置所有 timer
 let screenState='bright';
 
-// -- 变暗 --
+// -- 常亮计时（20分钟总时长）--
+function startBrightTimer(){
+  clearBrightTimer();
+  brightEndAt=Date.now()+BRIGHT_DUR;
+  brightTm=setTimeout(()=>{
+    brightTm=null;brightEndAt=0;
+    // 20分钟到，释放 Wake Lock 让系统息屏
+    enterScreenOff();
+    console.log('[Bright] 20分钟常亮到期，释放屏幕');
+  },BRIGHT_DUR);
+  console.log('[Bright] 常亮计时开始，20分钟后息屏');
+}
+function clearBrightTimer(){
+  if(brightTm){clearTimeout(brightTm);brightTm=null}
+  brightEndAt=0;
+}
+
+// -- 变暗（6秒无操作）--
 function startDim(){
   clearDim();
   dimStartAt=Date.now();
@@ -1011,14 +1453,14 @@ function enterScreenOff(){
   if(isScreenOff)return;
   isScreenOff=true;
   screenState='screenoff';
-  // 停止摄像头
-  if(attnOn){
-    attnOn=false;localStorage.setItem('sb-attn',false);
-    document.getElementById('swAttn').classList.remove('on');
-    stopFace();showCamTimerRow(false);clearCamTimer();
+  clearDim();clearBrightTimer();
+  // 如果注视感知开着，关闭摄像头
+  if(attnOn && vidStream){
+    stopFaceQuiet(); // 静默停止，不触发 wakeUp
   }
-  // 停止时钟
+  // 降低时钟频率到极低（30秒/次）
   if(clockTm){clearInterval(clockTm);clockTm=null}
+  clockTm=setInterval(tick,30000);
   // 关键：释放屏幕常亮，让系统自动锁屏
   releaseWake();
   console.log('[Screen] → screenoff (Wake Lock released, system will lock screen)');
@@ -1032,17 +1474,12 @@ function cancelScreenOff(){
 function wakeUp(reason){
   console.log('[wakeUp]',reason,'screenState=',screenState,'isScreenOff=',isScreenOff);
 
-  // 变暗状态下触摸，只恢复亮度+重新开始变暗
+  // 变暗状态下触摸，只恢复亮度+重新开始变暗（不重置20分钟总时长）
   if(reason==='touch'&&screenState==='dim'&&!isScreenOff){
     clearDim();
     undim();
     screenState='bright';
-    dimStartAt=Date.now();
-    dimTm=setTimeout(()=>{
-      screenState='dim';
-      document.getElementById('dim').classList.add('on');
-      updateStatus();
-    },DIM_DELAY);
+    startDim(); // 重新开始6秒变暗倒计时
     updateStatus();
     return;
   }
@@ -1056,15 +1493,28 @@ function wakeUp(reason){
   if(isScreenOff){
     isScreenOff=false;
     reqWake(); // 重新申请屏幕常亮
-    startClock(); // 恢复时钟
+    startClock(); // 恢复正常时钟频率
   }
   screenState='bright';
   lastFaceTime=Date.now();
   console.log('[Screen] → bright (' + reason + ')');
-  // face 唤醒：setLook 会进入 gazePaused → 5min → startDim
-  // 其他唤醒：需要重启变暗流程
-  if(reason!=='face'){
-    if(reason==='touch') ensureFaceDetectionRunning();
+
+  if(reason==='touch'){
+    // 触屏唤醒：重新开始20分钟常亮 + 6秒变暗
+    startBrightTimer();
+    startDim();
+    if(attnOn) ensureFaceDetectionRunning();
+  }else if(reason==='face'){
+    // 人脸唤醒：setLook 会进入 gazePaused → 5min → startDim
+    // 同时也开始20分钟常亮
+    startBrightTimer();
+  }else if(reason==='alarm'){
+    // 闹钟唤醒：重新开始20分钟常亮
+    startBrightTimer();
+    startDim();
+  }else{
+    // 其他（如 stop）：只开始变暗
+    startBrightTimer();
     startDim();
   }
   updateStatus();
@@ -1220,6 +1670,13 @@ function stopFace(){
   faceDetector=null;isLooking=false;gazePaused=false;
   wakeUp('stop');
 }
+// 静默停止（息屏时用，不触发 wakeUp）
+function stopFaceQuiet(){
+  if(faceInt){clearInterval(faceInt);faceInt=null}
+  pauseCamera(); // 只暂停不释放，以便唤醒时恢复
+  if(gazeTm){clearTimeout(gazeTm);gazeTm=null}
+  isLooking=false;gazePaused=false;
+}
 
 // ====== 状态指示器 ======
 // 记录变暗开始时间
@@ -1230,41 +1687,43 @@ function updateStatus(){
   const dot=document.getElementById('faceDot');
   if(!el)return;
   const now=Date.now();
-  let txt='';
+  let parts=[];
 
-  // 摄像头状态
+  // 摄像头/注视状态
   if(attnOn){
     if(gazePaused){
       const left=gazeTm?Math.max(0,Math.ceil((gazeEndAt-now)/1000)):0;
-      txt='⏸ 已暂停 '+fmtSec(left);
+      parts.push('⏸ 暂停 '+fmtSec(left));
     }else if(vidStream && faceInt){
-      txt='👁 检测中';
+      parts.push('👁 检测中');
     }else if(vidStream){
-      txt='📷 就绪';
+      parts.push('📷 就绪');
     }else{
-      txt='📷 待启动';
+      parts.push('📷 待启动');
     }
     // 摄像头定时倒计时
     if(camTimerEndAt>0){
       const camLeft=Math.max(0,Math.ceil((camTimerEndAt-now)/60000));
-      if(camLeft>60) txt+=' · '+Math.floor(camLeft/60)+'h'+String(camLeft%60).padStart(2,'0')+'m后关';
-      else if(camLeft>0) txt+=' · '+camLeft+'m后关';
-      else txt+=' · 即将关闭';
+      if(camLeft>60) parts.push(Math.floor(camLeft/60)+'h'+String(camLeft%60).padStart(2,'0')+'m后关');
+      else if(camLeft>0) parts.push(camLeft+'m后关');
+      else parts.push('即将关闭');
     }
-  }else{
-    txt='📷 关闭';
   }
 
-  if(screenState==='bright'&&dimTm){
-    const left=Math.max(0,Math.ceil((dimStartAt+DIM_DELAY-now)/1000));
-    txt+=' · '+left+'s后变暗';
-  }else if(screenState==='dim'){
-    txt+=' · 已变暗';
+  // 常亮倒计时
+  if(brightEndAt>0 && !isScreenOff){
+    const leftMin=Math.max(0,Math.ceil((brightEndAt-now)/60000));
+    if(leftMin>0) parts.push(leftMin+'m后息屏');
+  }
+
+  // 屏幕状态
+  if(screenState==='dim'){
+    parts.push('已变暗');
   }else if(screenState==='screenoff'){
-    txt+=' · 已交由系统息屏';
+    parts.push('已息屏');
   }
 
-  el.textContent=txt;
+  el.textContent=parts.join(' · ');
 
   // 绿点：只在正常亮屏且检测到人脸时亮
   if(dot){
@@ -1276,8 +1735,8 @@ function fmtSec(s){
   if(s>=60)return Math.floor(s/60)+'分'+String(s%60).padStart(2,'0')+'秒';
   return s+'秒';
 }
-// 每秒刷新
-setInterval(updateStatus,1000);
+// 5秒刷新一次状态栏（从1秒降低，省电）
+setInterval(updateStatus,5000);
 
 window.onerror=(m,u,l)=>console.error('ERR:',m,'L:',l);
 </script>
