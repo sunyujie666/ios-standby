@@ -16,13 +16,33 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{
   width:100%;height:100%;overflow:hidden;
-  background:#000;color:#fff;
+  background:#050607;color:#fff;
   font-family:-apple-system,'SF Pro Display','Helvetica Neue','PingFang SC',sans-serif;
   -webkit-user-select:none;user-select:none;
   -webkit-font-smoothing:antialiased;
   -webkit-tap-highlight-color:transparent;
 }
-body{display:flex;align-items:center;justify-content:center;position:fixed;inset:0}
+body{
+  display:flex;align-items:center;justify-content:center;
+  position:fixed;inset:0;
+  background:
+    radial-gradient(120% 120% at 0% 0%, rgba(58,78,180,.20) 0%, rgba(58,78,180,0) 42%),
+    radial-gradient(100% 120% at 100% 100%, rgba(188,73,91,.16) 0%, rgba(188,73,91,0) 46%),
+    linear-gradient(160deg,#06080b 0%,#040506 55%,#020304 100%);
+}
+body::before{
+  content:'';
+  position:fixed;inset:-18%;pointer-events:none;
+  background:
+    radial-gradient(35% 35% at 25% 32%, rgba(255,255,255,.09) 0%, rgba(255,255,255,0) 72%),
+    radial-gradient(30% 30% at 78% 70%, rgba(255,128,71,.09) 0%, rgba(255,128,71,0) 70%);
+  filter:blur(18px);
+  animation:bg-float 16s ease-in-out infinite alternate;
+}
+@keyframes bg-float{
+  from{transform:translate3d(-2%,0,0) scale(1)}
+  to{transform:translate3d(2%,-2%,0) scale(1.05)}
+}
 
 /* === 引导页 === */
 #guide{
@@ -52,32 +72,43 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 /* === 主布局 === */
 #app{width:100%;height:100%;display:none;position:relative;overflow:hidden}
 #app.show{display:block}
+#app::before{
+  content:'';
+  position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.05) 0%,rgba(255,255,255,0) 26%);
+}
+#app > *{position:relative;z-index:1}
 
 /* === 页面滑动容器 === */
 .pages{
   display:flex;width:200%;height:100%;
-  transition:transform .45s cubic-bezier(.25,.46,.45,.94);
+  transition:transform .55s cubic-bezier(.22,.61,.36,1);
 }
 .pages.no-anim{transition:none}
 .page{
   width:50%;height:100%;flex-shrink:0;
-  display:flex;padding:12px;gap:12px;
+  display:flex;padding:18px;gap:16px;
 }
 
 /* === 页面指示器 === */
 .page-dots{
-  position:fixed;bottom:max(8px,env(safe-area-inset-bottom));
+  position:fixed;bottom:max(10px,env(safe-area-inset-bottom));
   left:50%;transform:translateX(-50%);
-  display:flex;gap:6px;z-index:60;
+  display:flex;gap:8px;z-index:60;
+  padding:6px 10px;border-radius:999px;
+  background:rgba(8,10,14,.55);
+  border:1px solid rgba(255,255,255,.10);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
 }
 .page-dot{
-  width:6px;height:6px;border-radius:50%;
-  background:rgba(255,255,255,.2);
-  transition:all .3s;
+  width:7px;height:7px;border-radius:50%;
+  background:rgba(255,255,255,.22);
+  transition:all .32s ease;
 }
 .page-dot.active{
-  width:18px;border-radius:3px;
-  background:rgba(255,255,255,.6);
+  width:20px;border-radius:4px;
+  background:linear-gradient(90deg,#ffb457,#ff8d3a);
+  box-shadow:0 0 10px rgba(255,145,58,.45);
 }
 
 /* ===== 第一页：模拟时钟 + 日历 ===== */
@@ -85,23 +116,32 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 /* -- 模拟时钟面板 -- */
 .analog-panel{
   flex:1;display:flex;align-items:center;justify-content:center;
-  border-radius:28px;
-  background:rgba(255,255,255,.03);
+  border-radius:30px;
+  background:
+    linear-gradient(160deg,rgba(22,26,34,.90) 0%,rgba(12,14,18,.92) 100%),
+    rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.10);
   position:relative;overflow:hidden;min-width:0;
+  box-shadow:0 18px 40px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.06);
+}
+.analog-panel::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(70% 70% at 30% 22%, rgba(255,255,255,.06) 0%, rgba(255,255,255,0) 70%);
 }
 .analog-clock{
   position:relative;
-  width:min(70vh,320px);height:min(70vh,320px);
+  width:min(72vh,340px);height:min(72vh,340px);
 }
 .analog-face{
   width:100%;height:100%;border-radius:50%;
-  background:radial-gradient(circle at 50% 45%, rgba(40,40,45,1) 0%, rgba(20,20,22,1) 100%);
-  border:2px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(56,60,73,.92) 0%, rgba(17,19,24,.96) 55%, rgba(10,11,14,1) 100%);
+  border:2px solid rgba(255,255,255,.14);
   position:relative;
   box-shadow:
-    0 0 0 1px rgba(255,255,255,.03),
-    0 0 40px rgba(0,0,0,.5),
-    inset 0 0 60px rgba(0,0,0,.3);
+    0 0 0 1px rgba(255,255,255,.05),
+    0 24px 55px rgba(0,0,0,.48),
+    inset 0 0 70px rgba(0,0,0,.38);
 }
 /* 刻度 - 从顶部向圆心旋转 */
 .tick{
@@ -188,12 +228,14 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 
 /* -- 日历面板 -- */
 .calendar-panel{
-  width:min(42vh,280px);flex-shrink:0;
+  width:min(42vh,292px);flex-shrink:0;
   display:flex;flex-direction:column;
-  border-radius:28px;
-  background:rgba(255,255,255,.03);
+  border-radius:30px;
+  background:linear-gradient(165deg,rgba(20,22,30,.92),rgba(10,12,16,.96));
+  border:1px solid rgba(255,255,255,.1);
   overflow:hidden;
   padding:16px;
+  box-shadow:0 16px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.05);
 }
 .cal-header{
   display:flex;align-items:baseline;gap:8px;
@@ -245,25 +287,28 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 .clock-panel{
   flex:1;display:flex;flex-direction:column;
   align-items:center;justify-content:center;
-  border-radius:28px;
-  background:rgba(255,255,255,.03);
+  border-radius:30px;
+  background:linear-gradient(165deg,rgba(22,26,34,.92),rgba(10,12,16,.96));
+  border:1px solid rgba(255,255,255,.1);
   position:relative;overflow:hidden;
   min-width:0;
+  box-shadow:0 18px 38px rgba(0,0,0,.36), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 .clock-time{
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  font-size:min(22vw, 180px);
-  font-weight:200;
-  letter-spacing:-4px;
+  font-size:min(20vw, 168px);
+  font-weight:230;
+  letter-spacing:-3px;
   line-height:1;
   font-variant-numeric:tabular-nums;
   color:#fff;
   text-align:center;
   position:relative;
   padding-right:min(8vw,64px);
+  text-shadow:0 0 30px rgba(255,255,255,.1);
 }
 .clock-hm{display:inline-block}
 .clock-colon{opacity:.5}
@@ -303,11 +348,13 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 
 /* === 右侧：闹钟 === */
 .alarm-panel{
-  width:280px;flex-shrink:0;
+  width:292px;flex-shrink:0;
   display:flex;flex-direction:column;
-  border-radius:28px;
-  background:rgba(255,255,255,.03);
+  border-radius:30px;
+  background:linear-gradient(165deg,rgba(20,22,30,.92),rgba(10,12,16,.96));
+  border:1px solid rgba(255,255,255,.1);
   overflow:hidden;
+  box-shadow:0 16px 34px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 /* 闹钟头部 */
@@ -331,14 +378,15 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 .q-btn{
   display:flex;align-items:center;justify-content:space-between;
   padding:14px 16px;
-  background:rgba(255,255,255,.04);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:14px;cursor:pointer;
-  transition:background .15s,border-color .15s;
+  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.03));
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:16px;cursor:pointer;
+  transition:transform .15s,background .2s,border-color .2s;
 }
 .q-btn:active{
-  background:rgba(255,159,10,.08);
-  border-color:rgba(255,159,10,.2);
+  transform:scale(.985);
+  background:linear-gradient(160deg,rgba(255,159,10,.16),rgba(255,95,46,.08));
+  border-color:rgba(255,159,10,.35);
 }
 .q-left{display:flex;align-items:center;gap:12px}
 .q-emoji{font-size:20px}
@@ -494,9 +542,9 @@ body{display:flex;align-items:center;justify-content:center;position:fixed;inset
 /* === 调暗 === */
 #dim{
   position:fixed;inset:0;background:#000;opacity:0;
-  z-index:100;pointer-events:none;transition:opacity 2s;
+  z-index:100;pointer-events:none;transition:opacity 1.2s ease;
 }
-#dim.on{opacity:.9}
+#dim.on{opacity:.6}
 
 /* === 摄像头定时器控件 === */
 .cam-timer-ctrl{display:flex;align-items:center;gap:6px;flex-shrink:0}
@@ -697,7 +745,7 @@ body.lowpow *{animation-duration:0s!important;transition-duration:.1s!important}
   <div class="s-grp">
     <div class="s-label">💡 屏幕</div>
     <div class="s-row" style="border-radius:10px">
-      <div><div class="s-row-t">触屏常亮</div><div class="s-row-d">触屏后常亮20分钟，超时自动息屏</div></div>
+      <div><div class="s-row-t">触屏亮度策略</div><div class="s-row-d">触屏后亮屏20分钟 → 微暗20分钟 → 释放常亮，由 iOS 自动息屏</div></div>
       <span style="font-size:13px;color:rgba(255,255,255,.3);font-weight:500">默认开启</span>
     </div>
   </div>
@@ -760,11 +808,12 @@ let faceDetector=null,vidStream=null,faceInt=null;
 let isLooking=false,gazeTm=null,gazePaused=false;
 let screenOffTm=null, isScreenOff=false, lastFaceTime=Date.now();
 let gazeEndAt=0; // 注视暂停结束时间戳
-const DIM_DELAY=6000;        // 6秒无操作变暗
 const GAZE_DUR=300000;       // 注视暂停5分钟
-const BRIGHT_DUR=1200000;    // 触屏常亮20分钟（20*60*1000）
-let brightTm=null;           // 常亮倒计时 timer
-let brightEndAt=0;           // 常亮结束时间戳
+const BRIGHT_DUR=1200000;    // 亮屏阶段 20 分钟
+const DIM_DUR=1200000;       // 微暗阶段 20 分钟
+let brightTm=null;           // 亮屏阶段 timer
+let brightEndAt=0;           // 亮屏阶段结束时间戳
+let dimEndAt=0;              // 微暗阶段结束时间戳
 
 // 页面切换
 let currentPage=0;
@@ -834,8 +883,7 @@ async function launch(){
   setTimeout(()=>g.classList.add('gone'),500);
   if(attnOn)startFace();
   startWeather();
-  startBrightTimer(); // 开始20分钟常亮
-  startDim();
+  startBrightTimer(); // 进入亮屏20分钟阶段
   tickAnalog();
   updateStatus();
 }
@@ -845,8 +893,7 @@ function skipGuide(){
   reqWake();
   if(attnOn)setTimeout(startFace,400);
   startWeather();
-  startBrightTimer(); // 开始20分钟常亮
-  startDim();
+  startBrightTimer(); // 进入亮屏20分钟阶段
   tickAnalog();
   setTimeout(updateStatus,500);
 }
@@ -854,8 +901,35 @@ function skipGuide(){
 // ====== 屏幕常亮 ======
 let wakeLock=null,noSleep=null;
 async function reqWake(){
-  try{if('wakeLock' in navigator){wakeLock=await navigator.wakeLock.request('screen');return}}catch(e){}
-  if(noSleep)return;
+  // 优先 Wake Lock API（iOS 16.4+ Safari 支持）
+  try{
+    if('wakeLock' in navigator){
+      wakeLock=await navigator.wakeLock.request('screen');
+      // iOS Safari 可能在后台释放 Wake Lock，监听重新请求
+      wakeLock.addEventListener('release',async()=>{
+        console.log('[Wake] Wake Lock 被系统释放');
+        wakeLock=null;
+        // 如果还在亮屏或微暗阶段，立即重新请求
+        if(!isScreenOff && document.visibilityState==='visible'){
+          try{wakeLock=await navigator.wakeLock.request('screen')}catch(e){}
+        }
+      });
+      console.log('[Wake] Wake Lock API 已获取');
+      return;
+    }
+  }catch(e){console.log('[Wake] Wake Lock API 失败:',e.message)}
+  // Fallback: noSleep video hack（iOS Safari 不支持 Wake Lock 时）
+  ensureNoSleep();
+}
+function ensureNoSleep(){
+  if(noSleep){
+    // 确保 video 在播放（iOS 可能暂停它）
+    if(noSleep.paused){
+      noSleep.play().catch(()=>{});
+      console.log('[Wake] noSleep video 恢复播放');
+    }
+    return;
+  }
   try{
     noSleep=document.createElement('video');
     noSleep.setAttribute('playsinline','');noSleep.setAttribute('loop','');noSleep.muted=true;
@@ -863,26 +937,40 @@ async function reqWake(){
     noSleep.src='data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAs1tZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0OCByMjYwMSBhMGNkN2QzIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNSAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTI1IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhlYWQ9NDAgcmM9Y3JmIG1idHJlZT0xIGNyZj0yMy4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1heD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAFUWWIhAA3//728P4FNjuY0EcuAAVMAAAAB0AAAAN2n5gAAALDgAAAAMJYBAAFaagATEAAAAGBHhAAJoAAABgil0AAAO0IAABRgA+gAAAASkaQAADaAAAABjihAALmAAABa0AAALQAAAA1MBIAAAAEU/AAAM8YAA0RAAAAJQAAAAF1AAAAMKYAABNgAAADdAAAAG8AAAB7EAAAIoAAANAAAAKgAABXQAAAGoAAAAVYAAAC5gAAAGcAAAAhYAAAAvgAAAAfAAAADIAAAAIcAAAA6AAAACPAAAAA1AAAACB0AAAANUAAABegAAACrgAAAA/AAAAM0AAAAsYAAAAhwAAADLAAAALGAAAAIcAAABWAAAAYgAAABDAAAAO+AAAAUoAAAE+AAAAAEsAAAAKmAAAChAAAAA+AAAAi4AAAAPYAAAOcAAAC1gAAAAPQAAAAhQ==';
     document.body.appendChild(noSleep);
     noSleep.play().catch(()=>{});
+    console.log('[Wake] noSleep video hack 已启动');
   }catch(e){}
 }
 function releaseWake(){
   if(wakeLock){try{wakeLock.release()}catch(e){}wakeLock=null}
   if(noSleep){try{noSleep.pause();noSleep.remove()}catch(e){}noSleep=null}
-  console.log('[Wake] 释放屏幕常亮，交由系统自动息屏');
+  console.log('[Wake] 释放屏幕常亮，交由 iOS 系统自动息屏');
 }
+// iOS 定期检查常亮状态（每60秒），防止 video 被系统暂停导致意外息屏
+setInterval(()=>{
+  if(isScreenOff || document.visibilityState!=='visible')return;
+  if(!wakeLock && noSleep && noSleep.paused){
+    noSleep.play().catch(()=>{});
+    console.log('[Wake] 定期检查：noSleep video 已恢复');
+  }
+},60000);
 document.addEventListener('visibilitychange',async()=>{
   if(document.visibilityState==='visible'){
-    // 切回前台：检查常亮是否已过期
-    if(brightEndAt>0 && Date.now()>=brightEndAt){
-      // 常亮已过期，进入息屏
-      clearBrightTimer();
-      enterScreenOff();
-    }else if(!isScreenOff){
-      if(!wakeLock&&!noSleep)await reqWake();
+    const now=Date.now();
+    if(!isScreenOff){
+      if(dimEndAt>0 && now>=dimEndAt){
+        clearDimTimer();
+        enterScreenOff();
+      }else if(brightEndAt>0 && now>=brightEndAt){
+        clearBrightTimer();
+        enterDimPhase();
+      }else{
+        // 回到前台，确保常亮仍然生效
+        if(!wakeLock && !noSleep) await reqWake();
+        else if(!wakeLock && noSleep && noSleep.paused) noSleep.play().catch(()=>{});
+      }
     }
     tick();startClock();
   }else{
-    // 切到后台：停止时钟省电
     if(clockTm){clearInterval(clockTm);clockTm=null}
   }
 });
@@ -1406,46 +1494,49 @@ function tLP(){
   startClock(); // 重启时钟，应用新频率
 }
 // ====== 屏幕状态机 ======
-// 核心策略（注视感知关闭时）：
-//   触屏 → bright（常亮20分钟）→ 6秒无操作 dim → 20分钟到 → 释放 Wake Lock 系统息屏
-//   中间触屏可重置 dim，但不重置20分钟总时长
-//   再次触屏 → 重新开始20分钟
-//
-// 注视感知开启时：
-//   人脸检测到 → bright 5分钟（暂停检测省电）→ 恢复检测 → startDim
-//   触屏重置所有 timer
+// 触屏后时序：亮屏 20 分钟 → 微暗 20 分钟 → 自动息屏
 let screenState='bright';
 
-// -- 常亮计时（20分钟总时长）--
+// -- 亮屏阶段（20分钟）--
 function startBrightTimer(){
   clearBrightTimer();
+  clearDimTimer();
+  screenState='bright';
+  undim();
   brightEndAt=Date.now()+BRIGHT_DUR;
   brightTm=setTimeout(()=>{
-    brightTm=null;brightEndAt=0;
-    // 20分钟到，释放 Wake Lock 让系统息屏
-    enterScreenOff();
-    console.log('[Bright] 20分钟常亮到期，释放屏幕');
+    brightTm=null;
+    brightEndAt=0;
+    enterDimPhase();
   },BRIGHT_DUR);
-  console.log('[Bright] 常亮计时开始，20分钟后息屏');
+  console.log('[Screen] 进入亮屏阶段 20 分钟');
+  updateStatus();
 }
 function clearBrightTimer(){
   if(brightTm){clearTimeout(brightTm);brightTm=null}
   brightEndAt=0;
 }
 
-// -- 变暗（6秒无操作）--
-function startDim(){
-  clearDim();
-  dimStartAt=Date.now();
+// -- 微暗阶段（20分钟）--
+function enterDimPhase(){
+  if(isScreenOff)return;
+  clearBrightTimer();
+  clearDimTimer();
+  screenState='dim';
+  document.getElementById('dim').classList.add('on');
+  dimEndAt=Date.now()+DIM_DUR;
   dimTm=setTimeout(()=>{
-    screenState='dim';
-    document.getElementById('dim').classList.add('on');
-    console.log('[Screen] → dim');
-    updateStatus();
-  },DIM_DELAY);
+    dimTm=null;
+    dimEndAt=0;
+    enterScreenOff();
+  },DIM_DUR);
+  console.log('[Screen] 进入微暗阶段 20 分钟');
+  updateStatus();
 }
-function clearDim(){if(dimTm){clearTimeout(dimTm);dimTm=null}}
-// undim 只做视觉还原，不管任何 timer
+function clearDimTimer(){
+  if(dimTm){clearTimeout(dimTm);dimTm=null}
+  dimEndAt=0;
+}
 function undim(){document.getElementById('dim').classList.remove('on')}
 
 // -- 息屏（释放 Wake Lock，系统自动锁屏）--
@@ -1453,15 +1544,13 @@ function enterScreenOff(){
   if(isScreenOff)return;
   isScreenOff=true;
   screenState='screenoff';
-  clearDim();clearBrightTimer();
-  // 如果注视感知开着，关闭摄像头
+  clearBrightTimer();
+  clearDimTimer();
   if(attnOn && vidStream){
-    stopFaceQuiet(); // 静默停止，不触发 wakeUp
+    stopFaceQuiet();
   }
-  // 降低时钟频率到极低（30秒/次）
   if(clockTm){clearInterval(clockTm);clockTm=null}
   clockTm=setInterval(tick,30000);
-  // 关键：释放屏幕常亮，让系统自动锁屏
   releaseWake();
   console.log('[Screen] → screenoff (Wake Lock released, system will lock screen)');
   updateStatus();
@@ -1470,52 +1559,26 @@ function cancelScreenOff(){
   if(screenOffTm){clearTimeout(screenOffTm);screenOffTm=null}
 }
 
-// -- 唤醒（统一入口，触摸/人脸都走这里）--
+// -- 唤醒（统一入口）--
 function wakeUp(reason){
   console.log('[wakeUp]',reason,'screenState=',screenState,'isScreenOff=',isScreenOff);
-
-  // 变暗状态下触摸，只恢复亮度+重新开始变暗（不重置20分钟总时长）
-  if(reason==='touch'&&screenState==='dim'&&!isScreenOff){
-    clearDim();
-    undim();
-    screenState='bright';
-    startDim(); // 重新开始6秒变暗倒计时
-    updateStatus();
-    return;
-  }
-
-  // 清除所有 timer
-  clearDim();
+  clearBrightTimer();
+  clearDimTimer();
   cancelScreenOff();
-  // 视觉还原
   undim();
-  // 息屏还原
+
   if(isScreenOff){
     isScreenOff=false;
-    reqWake(); // 重新申请屏幕常亮
-    startClock(); // 恢复正常时钟频率
+    reqWake();
+    startClock();
   }
+
   screenState='bright';
   lastFaceTime=Date.now();
-  console.log('[Screen] → bright (' + reason + ')');
+  startBrightTimer();
 
-  if(reason==='touch'){
-    // 触屏唤醒：重新开始20分钟常亮 + 6秒变暗
-    startBrightTimer();
-    startDim();
-    if(attnOn) ensureFaceDetectionRunning();
-  }else if(reason==='face'){
-    // 人脸唤醒：setLook 会进入 gazePaused → 5min → startDim
-    // 同时也开始20分钟常亮
-    startBrightTimer();
-  }else if(reason==='alarm'){
-    // 闹钟唤醒：重新开始20分钟常亮
-    startBrightTimer();
-    startDim();
-  }else{
-    // 其他（如 stop）：只开始变暗
-    startBrightTimer();
-    startDim();
+  if(reason==='touch' && attnOn){
+    ensureFaceDetectionRunning();
   }
   updateStatus();
 }
@@ -1567,8 +1630,8 @@ function setLook(v){
     wakeUp('face');
     enterGazePause();
   }else{
-    // 没检测到人脸 → 开始变暗流程
-    startDim();
+    // 没检测到人脸：保持当前亮度阶段，不再立即压暗
+    updateStatus();
   }
 }
 
@@ -1589,7 +1652,6 @@ function enterGazePause(){
     // ★ 恢复摄像头轨道（无需重新获取权限）
     resumeCamera();
     restartFaceDetection('normal');
-    startDim();
     console.log('[Gaze] 注视暂停结束，已恢复检测');
     updateStatus();
   },GAZE_DUR);
@@ -1660,7 +1722,7 @@ function restartFaceDetection(){
       if(prev){let d=0;for(let i=0;i<data.length;i+=160)d+=Math.abs(data[i]-prev[i]);setLook(d/(data.length/160)>3)}
       prev=new Uint8Array(data);
     },interval);
-    console.log('[Face] 重启运动检测, 模式:'+mode+', 间隔:'+interval+'ms');
+    console.log('[Face] 重启运动检测(fallback), 间隔:'+interval+'ms');
   }
 }
 function stopFace(){
@@ -1679,9 +1741,6 @@ function stopFaceQuiet(){
 }
 
 // ====== 状态指示器 ======
-// 记录变暗开始时间
-let dimStartAt=0;
-
 function updateStatus(){
   const el=document.getElementById('statusText');
   const dot=document.getElementById('faceDot');
@@ -1710,15 +1769,19 @@ function updateStatus(){
     }
   }
 
-  // 常亮倒计时
-  if(brightEndAt>0 && !isScreenOff){
+  // 屏幕亮度阶段
+  if(screenState==='bright' && brightEndAt>0 && !isScreenOff){
     const leftMin=Math.max(0,Math.ceil((brightEndAt-now)/60000));
-    if(leftMin>0) parts.push(leftMin+'m后息屏');
+    if(leftMin>0) parts.push('亮屏'+leftMin+'m');
+  }
+  if(screenState==='dim' && dimEndAt>0 && !isScreenOff){
+    const leftMin=Math.max(0,Math.ceil((dimEndAt-now)/60000));
+    if(leftMin>0) parts.push('微暗'+leftMin+'m后息屏');
   }
 
   // 屏幕状态
-  if(screenState==='dim'){
-    parts.push('已变暗');
+  if(screenState==='dim' && dimEndAt===0){
+    parts.push('微暗中');
   }else if(screenState==='screenoff'){
     parts.push('已息屏');
   }
